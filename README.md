@@ -7,7 +7,7 @@ Installation:
 
 Notes:
 
-This repository is me sharing all my helper functions, defaults and utilities in one place, and also me finding my feet with a comfortable sharing workflow. Some utilities are curated, some created, some vetted, some not. I have yet to work out a way to tag- and keep them up to date. Some are made redundant by upgrades to the tools they manage... mayme someday all of them will... until then, this is my band-aid. Contributions welcome. 
+This repository is me sharing all my helper functions, defaults and utilities in one place, and also me finding my feet with a comfortable sharing workflow. Some utilities are curated, some created, some vetted, some not. I have yet to work out a way to tag- and keep them up to date. Some are made redundant by upgrades to the tools they manage... maybe someday all of them will... until then, this is my band-aid. Contributions welcome. 
 
 # Scripts
 
@@ -33,11 +33,11 @@ List all *mariadb* tags in one line:
 ## github-*
 *Github helper utilities*
 
-* Changes current git repo source url from ssh to https
+Changes current git repo source url from ssh to https
 
     github-tohttps
 
-* Changes current git repo source url from https to ssh
+Changes current git repo source url from https to ssh
 
     github-tossh
 
@@ -46,4 +46,4 @@ dependency: *git*
 
 # Defaults
 
-coming soon: ssh_config, .screenrc
+coming soon(TM): ssh_config, .screenrc
