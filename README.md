@@ -7,7 +7,9 @@ Installation:
 
 Notes:
 
-This repository is me sharing all my helper functions, defaults and utilities in one place, and also me finding my feet with a comfortable sharing workflow. Some utilities are curated, some created, some vetted, some not. I have yet to work out a way to tag- and keep them up to date. Some are made redundant by upgrades to the tools they manage... maybe someday all of them will... until then, this is my band-aid. Contributions welcome. 
+This repository is me sharing all my helper functions, defaults and utilities in one place, and also me finding my feet with a comfortable sharing workflow.
+
+Some utilities are curated, some created, some vetted, some not. I have yet to work out a way to tag- and keep them up to date. Some are made redundant by upgrades to the tools they manage... maybe someday most of them will... until then, this is my band-aid. Contributions welcome. 
 
 # Scripts
 
