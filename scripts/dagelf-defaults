@@ -1,0 +1,9 @@
+#!/bin/sh
+echo screenrc...
+grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* ti@:te@'|sudo tee -a /etc/screenrc
+
+echo git credentials...
+git config --global user.email "coenraad@wish.org.za"
+git config --global user.name "dagelf"
+
+echo Done\!
