@@ -1,0 +1,14 @@
+#!/bin/sh
+#todo: fix networkmanager, or replace/improve it...
+# /ww or iwlist wlan0 scanning|grep ESSID; wpa_passphrase SSID >> /etc/wpa_supplicant.conf
+sudo service network-manager stop
+sudo rmmod iwlmvm
+sudo modprobe iwlmvm
+#sudo iw reg set 00
+sudo iw reg set US
+sudo ifconfig wlan0 up
+sudo killall -9 wpa_supplicant
+sudo killall -9 dhclient
+sudo wpa_supplicant -Dnl80211 -iwlan0 -c/etc/wpa_supplicant.conf &
+rm /var/lib/dhcp/dhclient.leases
+sleep 5 & sudo dhclient -d wlan0 &
