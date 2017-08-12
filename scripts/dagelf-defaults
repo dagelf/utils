@@ -1,8 +1,15 @@
 #!/bin/sh
-echo screenrc...
+echo screenrc
 grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* ti@:te@'|sudo tee -a /etc/screenrc
 
-echo git credentials...
+echo aliases
+grep -q dagelf ~/.bash_aliases||echo '# dagelf
+alias dp="docker ps -a "
+alias xt="xtightvncviewer -compresslevel 9 -encodings 'tight copyrect coRRE' -quality 3 "
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x720 -u WIN_USER -p WIN_PASS "
+' >> ~/.bash_aliases
+
+echo git credentials
 git config --global user.email "coenraad@wish.org.za"
 git config --global user.name "dagelf"
 git config --global push.default simple
