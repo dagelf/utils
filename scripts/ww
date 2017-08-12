@@ -1,0 +1,2 @@
+for a in `sudo iwlist wlan0 scanning $1|egrep "(Qua|Enc|ESSID)"|sed s@=@\ @g`; do echo -n "$a "; echo $a|grep -q Qua&&echo; done|sed s@Quality@@g|sort -n -k5
+
