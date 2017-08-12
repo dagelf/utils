@@ -1,5 +1,5 @@
 #!/bin/sh
-[ -z "$1" ] && echo "Adds current user's ssh key to host\n  Usage: $0 host [ssh options]\n" && exit
+[ -z "$1" ] && echo "Adds current user's ssh key to host\n  Usage: $0 host [ssh options]" && exit
 [ \! -f ~/.ssh/id_rsa ] && ssh-keygen
 K=`cat ~/.ssh/id_rsa.pub`
 ssh $* "mkdir .ssh;grep \"$K\" .ssh/authorized_keys||echo \"$K\" >> .ssh/authorized_keys;chmod 600 .ssh/authorized_keys" >/dev/null 2>/dev/null
