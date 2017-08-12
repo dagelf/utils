@@ -10,7 +10,7 @@ http_to_ssh(){
     echo ""
     echo "Checking for $1..."
 
-    REPO_URL=`git remote -v | grep -m1 "^$1" | sed -Ene's#.*(https://[^[:space:]]*).*#\1#p'`
+    REPO_URL=`git remote -v | grep -m1 "^$1" | sed -Ene's#.*(://[^[:space:]]*).*#\1#p'`
     if [ -z "$REPO_URL" ]; then
 	if [ "$1" == "upstream" ]; then
 	    echo "-- No upstream found"
@@ -21,14 +21,14 @@ http_to_ssh(){
 	    exit
 	fi
     fi
-
-    USER=`echo $REPO_URL | sed -Ene's#https://github.com/([^/]*)/(.*).git#\1#p'`
+    
+    USER=`echo $REPO_URL | sed -Ene's#://github.com/([^/]*)/(.*)[\.git]#\1#p'`
     if [ -z "$USER" ]; then
 	echo "-- ERROR:  Could not identify User."
 	exit
     fi
 
-    REPO=`echo $REPO_URL | sed -Ene's#https://github.com/([^/]*)/(.*).git#\2#p'`
+    REPO=`echo $REPO_URL | sed -Ene's#://github.com/([^/]*)/(.*)[\.git]#\2#p'`
     if [ -z "$REPO" ]; then
 	echo "-- ERROR:  Could not identify Repo."
 	exit
