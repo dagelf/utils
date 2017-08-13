@@ -10,8 +10,8 @@ alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x720 -u WIN_USER -p WI
 ' >> ~/.bash_aliases
 
 echo git credentials
-git config --global user.email "coenraad@wish.org.za"
-git config --global user.name "dagelf"
+git config --global user.email "GITHUB_EMAIL"
+git config --global user.name "GITHUB_NAME"
 git config --global push.default simple
 
 echo Done\!
