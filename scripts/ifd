@@ -1,6 +1,6 @@
 #!/bin/sh
 # todo: play nice with networkmanager and other firewalls; improve firewall
-[ -z "$1" ] && echo "Configures & runs dhcp & net sharing on an interface\n  Usage: $0 interface" && exit
+[ -z "$1" ] && echo -e "Configures & runs dhcp & net sharing on an interface\n  Usage: $0 interface" && exit
 echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
 sudo iptables -t nat -A POSTROUTING -j MASQUERADE
 sudo iptables -I INPUT -s 192.168.9.0/24 -j ACCEPT

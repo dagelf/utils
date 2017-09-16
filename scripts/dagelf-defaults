@@ -5,13 +5,17 @@ grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* 
 echo aliases
 grep -q dagelf ~/.bash_aliases||echo '# dagelf
 alias dpa="docker ps -a "
+alias gam="git commit -am "
+alias apt="sudo apt "
+alias pacman="sudo pacman "
+alias apt-get="sudo apt-get "
 alias xtv="xtightvncviewer -compresslevel 9 -encodings 'tight copyrect coRRE' -quality 3 "
 alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x720 -u WIN_USER -p WIN_PASS "
 ' >> ~/.bash_aliases
 
 echo git credentials
-git config --global user.email "GITHUB_EMAIL"
-git config --global user.name "GITHUB_NAME"
+#git config --global user.email "GITHUB_EMAIL"
+#git config --global user.name "GITHUB_NAME"
 git config --global push.default simple
 
 echo Done\!
