@@ -4,6 +4,8 @@ grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* 
 
 echo aliases
 grep -q dagelf ~/.bash_aliases||echo '# dagelf
+alias rm="rm --one-file-system "
+alias cp="cp --one-file-system "
 alias dpa="docker ps -a "
 alias xtv="xtightvncviewer -compresslevel 9 -encodings 'tight copyrect coRRE' -quality 3 "
 alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x720 -u WIN_USER -p WIN_PASS "
