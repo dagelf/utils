@@ -1,0 +1,1 @@
+[ -e /var/lib/smart ] || sudo mkdir /var/lib/smart; sudo chmod a+rw /var/lib/smart; d=`date +%s`; for a in $(cd /dev;ls sd?); do sudo smartctl --all /dev/$a > /tmp/$a-tmp; s=`grep Serial\\ N /tmp/$a-tmp|cut -d: -f2|sed s@\ @@g`; mv /tmp/$a-tmp /var/lib/smart/$s-$d; done; 
