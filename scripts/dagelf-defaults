@@ -16,8 +16,8 @@ alias apt="sudo apt "
 alias pacman="sudo pacman "
 alias dpa="docker ps -a "
 alias dxxx="docker rm \"$(docker ps -a -q)\""
-function gam { git commit -am "$@" } #; git push
-function gp { git commit -am "$@"; git push }
+function gam { git commit -am "$@"; } 
+function gp { git commit -am "$@"; git push; }
 alias apt="sudo apt "
 alias pacman="sudo pacman "
 alias apt-get="sudo apt-get "
@@ -26,8 +26,8 @@ alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g $RES -u $WIN_USER -p $WIN_
 #end-defaults' >> $F
 
 echo git credentials
-#git config --global user.email "$GITHUB_EMAIL"
-#git config --global user.name "$GITHUB_NAME"
+git config --global user.email "$GITHUB_EMAIL"
+git config --global user.name "$GITHUB_NAME"
 git config --global push.default simple
 
 echo Done\!
