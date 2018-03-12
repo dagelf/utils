@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 if [ $# -lt 1 ]
 then
@@ -20,6 +20,7 @@ EXAMPLE:
        https://hub.docker.com/r/library/*image*/
 
 HELP
+exit 1
 fi
 
 image="$1"
