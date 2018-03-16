@@ -1,2 +1,11 @@
 #!/bin/sh
-echo `echo 'U2FsdGVkX18JuhSVRjABqNbVXb1A+sFycLHt+oMmJOA='|openssl aes-128-cbc -a -d -salt -k $KEY` $*|sh
+# KEY=password ob [[line] args]# runs encrypted command - todo: find a portable way to use kernel key rather because this key will end up in history and can trivially be logged
+# echo "uptime"|openssl aes-256-cbc -a -k password >> ob # uptime = command, password = password
+L=$1; [ -z "$L" ] && L=1
+shift
+F=9 # line in this file with first command
+CMD=`head -$(($F+$L)) $0|tail -1` 
+echo `echo "$CMD"|openssl aes-256-cbc -a -d -salt -k $KEY` $*|sh
+exit
+U2FsdGVkX189xrfkeMKOdEILEeKPuFwtGdvIEtPJojQ=
+U2FsdGVkX1+vBgIRRJe8fv0p0bj9HuQm8wCDwT7WA/k=
