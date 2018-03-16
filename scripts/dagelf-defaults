@@ -18,7 +18,8 @@ alias pacman="sudo pacman"
 alias dpa="docker ps -a"
 alias dxxx="docker rm \"\$\(docker ps -a -q\)\""
 function gam { git commit -am "$@"; } 
-function gp { git commit -am "$@"; git push; }
+function gpm { git commit -am "$@"; git push; }
+function gp { git commit -am "..."; git push; }
 alias apt="sudo apt"
 alias mkdir="mkdir -p"
 alias pacman="sudo pacman"
