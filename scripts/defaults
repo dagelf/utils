@@ -1,9 +1,6 @@
 #!/bin/sh -e
 [ -z "$RES" ] && (echo "# Run like this:\nRES=1280x1024 WIN_USER=\"\" WIN_PASS=\"\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
 
-echo screenrc
-grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* ti@:te@'|sudo tee -a /etc/screenrc
-
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1`
 echo default wlan is $WLAN
 
@@ -36,12 +33,6 @@ if [ -e `which git` ]; then
   git config --global push.default simple
 fi 
 echo Done\!
-
-echo permissions and groups...
-chgrp src /usr/src
-chmod g+s /usr/src
-usermod -a -G src coenraad
-mkdir -p /usr/src/github
 
 echo source $F # if you want it already
 #apt install screen git iotop 

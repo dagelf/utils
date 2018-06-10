@@ -1,3 +1,4 @@
 #!/bin/sh
+#for a in `docker ps -q`; do echo $a `docker inspect $a --format="{{.NetworkSettings.IPAddress}} {{.Config.Image}} {{.State.StartedAt}} {{.Path}}"`; done
+for a in `docker ps -q`; do echo $a `docker inspect $a|grep IPAddress|grep 172|cut -d: -f2` `docker inspect $a --format="{{.Config.Image}} {{.State.StartedAt}} {{.Path}}"`; done
 # todo: iterate env, volumes, cmd  ...# other {{.Name}}
-for a in `docker ps -q`; do echo $a `docker inspect $a --format="{{.NetworkSettings.IPAddress}} {{.Config.Image}} {{.State.StartedAt}} {{.Path}}"`; done
