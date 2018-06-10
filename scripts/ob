@@ -1,9 +1,13 @@
 #!/bin/sh
-# KEY=password ob [[line] args]# runs encrypted command - todo: find a portable way to use kernel key rather because this key will end up in history and can trivially be logged
-# echo "uptime"|openssl aes-256-cbc -a -k password >> ob # uptime = command, password = password
+# Run obfuscated commands. Eventual goal is to be able to run a command with a built in password that can't be extracted...
+# at this point, the password is easily extracted of course, by just changing the echo command below
+# KEY=password ob [[line] args]# runs encrypted command - todo: find a portable way to use kernel key and/or secure hardware element, from terminal
+# example: KEY=password ./ob 2
+# to add more obfuscated commands: 
+#  echo "uptime"|openssl aes-256-cbc -a -k password >> ob # uptime = command, password = password
 L=$1; [ -z "$L" ] && L=1
 shift
-F=9 # line in this file with first command
+F=13 # line in this file with first command
 CMD=`head -$(($F+$L)) $0|tail -1` 
 echo `echo "$CMD"|openssl aes-256-cbc -a -d -salt -k $KEY` $*|sh
 exit
