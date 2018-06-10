@@ -1,0 +1,3 @@
+#!/bin/sh
+# todo: iterate env, volumes, cmd  ...# other {{.Name}}
+for a in `docker ps -q`; do echo $a `docker inspect $a --format="{{.NetworkSettings.IPAddress}} {{.Config.Image}} {{.State.StartedAt}} {{.Path}}"`; done
