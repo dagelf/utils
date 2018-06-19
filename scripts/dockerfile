@@ -28,4 +28,4 @@ fi
 
 curl -s https://hub.docker.com/r/$image/|grep $tag|head -1|cut -d\" -f2|sed s@github.com@raw.githubusercontent.com@|sed s@/blob@@|xargs curl -s
 
-
+echo #See also: https://hub.docker.com/r/$image/
