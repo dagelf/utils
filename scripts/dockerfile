@@ -1,0 +1,29 @@
+#!/bin/sh -e
+
+if [ $# -lt 1 ]
+then
+cat << HELP
+
+dockerfile  --  dump dockerfile used to create an image
+
+EXAMPLE: 
+    - list dockerfile for ubuntu:latest
+       dockerfile ubuntu
+
+    - list dockerfile for php:apache:
+       dockerfile php apache
+
+HELP
+exit 1
+fi
+
+image=$1
+tag=$2
+
+if [ -n $tag ]; then
+  tag=latest;
+fi;
+
+curl -s https://hub.docker.com/r/library/$image/|grep $tag|head -1|cut -d\" -f2|sed s@github.com@raw.githubusercontent.com@|sed s@/blob@@|xargs curl -s
+
+
