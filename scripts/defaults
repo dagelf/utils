@@ -1,5 +1,5 @@
 #!/bin/sh -e
-[ -z "$RES" ] && (echo "# Run like this:\nRES=1280x1024 WIN_USER=\"\" WIN_PASS=\"\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
+[ -z "$RES" ] && (echo "# Run like this:\nRES=1280x1024 WIN_USER=\"\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
 
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1`
 echo default wlan is $WLAN
@@ -23,9 +23,8 @@ alias pacman="sudo pacman"
 alias apt-get="sudo apt-get"
 alias apt="sudo apt"
 alias xtv="xtightvncviewer -compresslevel 9 -encodings 'tight copyrect coRRE' -quality 3"
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '"$RES -u $WIN_USER"'"
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '"$RES -u $WIN_USER -p $WIN_PASS "'"
 #end-defaults' >> $F
-# -p $WIN_PASS
 if [ -e `which git` ]; then 
   echo git credentials
   git config --global user.email "$GITHUB_EMAIL"
