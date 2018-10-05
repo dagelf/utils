@@ -22,8 +22,8 @@ alias mkdir="mkdir -p"
 alias pacman="sudo pacman"
 alias apt-get="sudo apt-get"
 alias apt="sudo apt"
-alias xtv="xtightvncviewer -compresslevel 9 -encodings '''tight copyrect coRRE''' -quality 3"
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS'"
+alias xtv="xtightvncviewer -compresslevel 9 -encodings '''tight copyrect coRRE''' -quality 3 "
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS' "
 alias noc="egrep -v '''.*#'''|sed '''/^\s*$/d'''" #cat conf|noc #to remove comments
 alias ips="'"ip addr|egrep '(^.\:)|inet\ '|cut -d: -f1-2|sed s@inet@@g"'"
 #end-defaults' >> $F
