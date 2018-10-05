@@ -1,7 +1,7 @@
 #!/bin/sh -e
 [ -z "$RES" ] && (echo "# Run like this:\nRES=1280x1024 WIN_USER=\"\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
 
-WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1`
+WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
 echo default wlan is $WLAN
 
 echo aliases
@@ -9,7 +9,7 @@ F=~/.bash_aliases
 grep -q \\#defaults $F && mv $F $F.tmp && cat $F.tmp | sed '/^\#defaults/,/^\#end-defaults/d' > $F && rm $F.tmp
 echo '#defaults
 WLAN='$WLAN'
-DISPLAY=:0
+#DISPLAY=:0
 alias apt="sudo apt"
 alias pacman="sudo pacman"
 alias dpa="docker ps -a"
@@ -22,10 +22,10 @@ alias mkdir="mkdir -p"
 alias pacman="sudo pacman"
 alias apt-get="sudo apt-get"
 alias apt="sudo apt"
-alias xtv="xtightvncviewer -compresslevel 9 -encodings 'tight copyrect coRRE' -quality 3"
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '"$RES -u $WIN_USER -p $WIN_PASS "'"
+alias xtv="xtightvncviewer -compresslevel 9 -encodings '''tight copyrect coRRE''' -quality 3"
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u i'$WIN_USER' -p '$WIN_PASS'"
 alias noc="egrep -v '''.*#'''|sed '''/^\s*$/d'''" #cat conf|noc #to remove comments
-alias ips="ip addr|egrep '(^.\:)|inet\ '|cut -d: -f1-2|sed s@inet@@g"
+alias ips="'"ip addr|egrep '(^.\:)|inet\ '|cut -d: -f1-2|sed s@inet@@g"'"
 #end-defaults' >> $F
 if [ -e `which git` ]; then 
   echo git credentials

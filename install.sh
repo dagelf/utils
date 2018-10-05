@@ -2,15 +2,17 @@
 # todo: add support for non-debian and do only user install and make global install require a switch? 
 cd "$(dirname -- "$0")" 2>/dev/null # allows script to be called from another directory
 
+#todo ask to install globally, then just sudo cp to /usr/local/bin and tee /etc/screenrc
 S=`which sudo`
 which wget >/dev/null || {
   I="$S apt-get install -y"
   $I wget
  }
-$S cp scripts/* /usr/local/bin || echo "Please run with sudo or as root to install globally."
+mkdir ~/bin 2>/dev/null
+cp scripts/* ~/bin 
 
 echo screenrc
-grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* ti@:te@'|sudo tee -a /etc/screenrc
+grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc||echo 'termcapinfo xterm\* ti@:te@'|tee -a ~/.screenrc
 
 echo permissions and groups...
 chgrp src /usr/src
