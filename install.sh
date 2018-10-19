@@ -14,10 +14,10 @@ echo Installing globally...
 echo screenrc
 grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc
 echo permissions and groups...
-chgrp src /usr/src
-chmod g+s /usr/src
-usermod -a -G src `whoami` # add current user to src group
-mkdir -p /usr/src/github # todo - make git pulls from github pull here under username
+$S chgrp src /usr/src
+$S chmod g+s /usr/src
+$S usermod -a -G src `whoami` # add current user to src group
+$S mkdir -p /usr/src/github # todo - make git pulls from github pull here under username
 else 
 echo Installing for `whoami` only...
 mkdir ~/bin 2>/dev/null
