@@ -1,0 +1,9 @@
+#!/bin/sh
+U=`echo $1|cut -d\/ -f1`
+P=`echo $1|cut -d\/ -f2-`
+cd /usr/src/github
+[ -e $U ] || mkdir $U
+cd $U
+git clone $2 https://github.com/$1
+ls
+pwd
