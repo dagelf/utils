@@ -1,1 +1,3 @@
-for s in 1024 512 256 128 64 16 8 4 1; do a=$(( $s*1024 )); echo -ne "$(( $s ))k\t"; sync; echo 3|sudo tee /proc/sys/vm/drop_caches >/dev/null; nice -10 sudo dd if=/temp of=/dev/null bs=$(( $a )) count=$(( 100*1024*1024/$a )) 2>&1|grep -v records; done
+if [ -z $1 ]; then d=/temp; else d=$1; fi
+if [ -z $2 ]; then len=100; else len=$2; fi
+for s in 1024 512 256 128 64 16 8 4 1; do a=$(( $s*1024 )); echo -ne "$(( $s ))k\t"; sync; echo 3|sudo tee /proc/sys/vm/drop_caches >/dev/null; nice -10 sudo dd if=$d of=/dev/null bs=$(( $a )) count=$(( $len*1024*1024/$a )) 2>&1|grep -v records; done
