@@ -1,5 +1,5 @@
 #!/bin/sh -e
-[ -z "$RES" ] && (echo "# Run like this:\nRES=1280x1024 WIN_USER=\"\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
+[ -z "$RES" ] && (echo "# Run like this:\nRES=1024x768 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
 
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
 echo default wlan is $WLAN
@@ -27,7 +27,7 @@ alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '
 alias noc="egrep -v \".*#\"|sed /^\s*$/d" #cat conf|noc #to remove comments
 alias ips="ip addr|egrep \"(^.\:)|inet\\ \"|cut -d: -f1-2|sed s@inet@@g"
 alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\-get"
-alias m="egrep -v \"^(shm|overlay|cgroup|tmpfs|debugfs|sysfs|systemd|nsfs|lxcfs|configs|binfmt|hugetlb|mqueue|pstore|securityfs|devpts|udev|proc|fusectl|configfs)\" /proc/mounts "
+alias m="egrep -v \"^(shm|overlay|cgroup|tmpfs|debugfs|sysfs|systemd|nsfs|lxcfs|configs|binfmt|hugetlb|mqueue|pstore|securityfs|devpts|udev|proc|fusectl|configfs|efivarfs|tracefs)\" /proc/mounts "
 #end-defaults' >> $F
 if [ -e `which git` ]; then 
   echo git credentials
