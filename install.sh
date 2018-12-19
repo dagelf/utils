@@ -12,7 +12,7 @@ which wget >/dev/null || {
 if $S whoami; then 
 echo Installing globally...
 echo screenrc
-grep -q '^termcapinfo xterm\* ti@:te@' /etc/screenrc
+grep -q '^termcapinfo xterm* ti@:te@' /etc/screenrc || echo 'termcapinfo xterm* ti@:te@'|$S tee -a /etc/screenrc
 echo permissions and groups...
 $S chgrp src /usr/src
 $S chmod g+s /usr/src
@@ -23,7 +23,7 @@ echo Installing for `whoami` only...
 mkdir ~/bin 2>/dev/null
 cp scripts/* ~/bin 
 echo screenrc
-echo 'termcapinfo xterm\* ti@:te@'|tee -a ~/.screenrc
+echo 'termcapinfo xterm* ti@:te@'|tee -a ~/.screenrc
 echo Can\'t do permissions and groups without root
 fi
 
