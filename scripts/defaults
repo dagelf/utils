@@ -27,6 +27,7 @@ alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '
 alias noc="egrep -v \".*#\"|sed /^\s*$/d" #cat conf|noc #to remove comments
 alias ips="ip addr|egrep \"(^.\:)|inet\\ \"|cut -d: -f1-2|sed s@inet@@g"
 alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\-get"
+alias m="egrep -v \"^(shm|overlay|cgroup|tmpfs|debugfs|sysfs|systemd|nsfs|lxcfs|configs|binfmt|hugetlb|mqueue|pstore|securityfs|devpts|udev|proc|fusectl|configfs)\" /proc/mounts "
 #end-defaults' >> $F
 if [ -e `which git` ]; then 
   echo git credentials
