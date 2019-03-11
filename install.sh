@@ -4,6 +4,7 @@ cd "$(dirname -- "$0")" 2>/dev/null # allows script to be called from another di
 
 #todo ask to install globally, then just sudo cp to /usr/local/bin and tee /etc/screenrc
 S=`which sudo`
+echo -n "I am ";whoami|grep root && S=""
 which wget >/dev/null || {
   I="$S apt-get install -y"
   $I wget
@@ -11,6 +12,8 @@ which wget >/dev/null || {
 
 if $S whoami; then 
 echo Installing globally...
+echo scripts
+$S cp scripts/* /usr/local/bin
 echo screenrc
 grep -q '^termcapinfo xterm* ti@:te@' /etc/screenrc || echo 'termcapinfo xterm* ti@:te@'|$S tee -a /etc/screenrc
 echo permissions and groups...
