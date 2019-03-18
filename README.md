@@ -2,8 +2,8 @@
 
 Installation:
 
-    git clone --depth 1 https://github.com/dagelf/utils
-    utils/install.sh
+    git clone --depth 1 https://github.com/dagelf/utils utils-dagelf || (wget https://github.com/dagelf/utils/archive/master.zip -O dagelf-utils.zip && unzip dagelf-utils.zip && mv utils-master dagelf-utils) || (curl https://github.com/dagelf/utils/archive/master.zip > dagelf-utils.zip && unzip dagelf-utils && mv utils-master dagelf-utils)
+    dagelf-utils/install.sh
 
 Notes:
 
