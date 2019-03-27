@@ -16,6 +16,12 @@ echo scripts
 $S cp scripts/* /usr/local/bin
 echo screenrc
 grep -q '^termcapinfo xterm* ti@:te@' /etc/screenrc || echo 'termcapinfo xterm* ti@:te@'|$S tee -a /etc/screenrc
+echo ssh_config
+grep -q ControlPersist /etc/ssh/ssh_config || cat << EOF >> /etc/ssh/ssh_config
+ControlMaster auto
+ControlPath ~/.ssh/sockets/%r@%h-%p
+ControlPersist 600
+EOF
 echo permissions and groups...
 $S chgrp src /usr/src
 $S chmod g+s /usr/src
