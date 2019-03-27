@@ -17,7 +17,7 @@ $S cp scripts/* /usr/local/bin
 echo screenrc
 grep -q '^termcapinfo xterm* ti@:te@' /etc/screenrc || echo 'termcapinfo xterm* ti@:te@'|$S tee -a /etc/screenrc
 echo ssh_config
-grep -q ControlPersist /etc/ssh/ssh_config || cat << EOF |$S tee -a /etc/ssh/ssh_config
+grep -q ControlPersist /etc/ssh/ssh_config || $S tee -a /etc/ssh/ssh_config <<EOF
 	ControlMaster auto
 	ControlPath ~/.ssh/sockets/%r@%h-%p
 	ControlPersist 600
