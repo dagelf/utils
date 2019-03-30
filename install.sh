@@ -17,11 +17,13 @@ $S cp scripts/* /usr/local/bin
 f=/etc/screenrc; echo $f
 grep -q '^termcapinfo xterm* ti@:te@' $f || echo 'termcapinfo xterm* ti@:te@'|$S tee -a $f
 f=/etc/ssh/ssh_config; echo $f
-grep -q ControlPersist $f || cat <<EOF $S tee -a $f <<EOF
+if ! grep -q ControlPersist $f; then 
+cat <<EOF $S tee -a $f <<EOF
 	ControlMaster auto
 	ControlPath ~/.ssh/sockets/%r@%h-%p
 	ControlPersist 600
 EOF
+fi
 echo permissions and groups...
 $S chgrp src /usr/src
 $S chmod g+s /usr/src
