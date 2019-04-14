@@ -18,7 +18,7 @@ f=/etc/screenrc; echo $f
 grep -q '^termcapinfo xterm* ti@:te@' $f || echo 'termcapinfo xterm* ti@:te@'|$S tee -a $f
 f=/etc/ssh/ssh_config; echo $f
 if ! grep -q ControlPersist $f; then 
-cat <<EOF $S tee -a $f <<EOF
+cat <<EOF | $S tee -a $f
 	ControlMaster auto
 	ControlPath ~/.ssh/sockets/%r@%h-%p
 	ControlPersist 600
