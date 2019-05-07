@@ -3,12 +3,15 @@
 
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
 echo default wlan is $WLAN
+ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1` #todo fixme
+echo default eth is $ETH
 
 echo aliases
 F=~/.bash_aliases
 grep -q \\#defaults $F && mv $F $F.tmp && cat $F.tmp | sed '/^\#defaults/,/^\#end-defaults/d' > $F && rm $F.tmp
 echo '#defaults
 WLAN='$WLAN'
+ETH='$ETH'
 #DISPLAY=:0
 alias apt="sudo apt"
 alias pacman="sudo pacman"
