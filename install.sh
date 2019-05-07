@@ -20,7 +20,7 @@ f=/etc/ssh/ssh_config; echo $f
 if ! grep -q ControlPersist $f; then 
 cat <<EOF | $S tee -a $f
 	ControlMaster auto
-	ControlPath ~/.ssh/sockets/%r@%h-%p
+	ControlPath ~/.ssh/socket-%r@%h-%p
 	ControlPersist 600
 EOF
 fi
