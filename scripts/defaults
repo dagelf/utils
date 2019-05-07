@@ -1,5 +1,5 @@
 #!/bin/sh -e
-[ -z "$RES" ] && (echo "# Run like this:\nRES=1024x768 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
+[ -z "$RES" ] && (echo "# Run like this:\nRES=1280x960 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GITHUB_NAME=\"\" GITHUB_EMAIL=\"\" $0"; exit 1;)
 
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
 echo default wlan is $WLAN
@@ -29,16 +29,19 @@ alias mount="mount|egrep -v ''on /(snap|sys|dev|run|proc)''"
 alias mounta=mount
 alias apt-get="sudo apt-get"
 alias apt="sudo apt"
+alias l="ls -lSr"
 alias xtv="xtightvncviewer -compresslevel 9 -encodings \"tight copyrect coRRE\" -quality 3"
 alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS'"
 alias z="egrep -v \"^[ \t]*[;#]\"|sed /^\s*$/d" #cat conf|z #to remove comments
 alias ips="ip addr|egrep \"(^.\:)|inet\\ \"|cut -d: -f1-2|sed s@inet@@g"
 alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\-get"
 alias dr="function _z(){ z=`pwgen 6 1`;docker exec \$1 touch /\$z;sudo find /var/lib/docker/|grep \$z|sed s@\$z@@;docker exec \$1 rm /\$z;};_z"
-alias blah="function _blah\(\){ echo \"First: $1\"; echo \"Second: $2\"; };_blah"
+alias killg="function _killg(){ ps auxf|grep $1|awk ''{system("sudo kill "$2)}''; };_killg"
+alias blah="function _blah(){ echo \"First: \$1\"; echo \"Second: \$2\"; };_blah"
 alias m="egrep -v \"^(shm|overlay|cgroup|tmpfs|debugfs|sysfs|systemd|nsfs|lxcfs|configs|binfmt|hugetlb|mqueue|pstore|securityfs|devpts|udev|proc|fusectl|configfs|efivarfs|tracefs)\" /proc/mounts "
 #end-defaults' >> $F
-if [ -e `which git` ]; then 
+if 
+if [ -n $GITHUB_EMAIL ] && [ -e `which git` ]; then 
   echo git credentials
   git config --global user.email "$GITHUB_EMAIL"
   git config --global user.name "$GITHUB_NAME"
@@ -46,5 +49,5 @@ if [ -e `which git` ]; then
 fi 
 echo Done\!
 
-echo source $F # if you want it already
+echo source $F \# if you want it already
 #apt install screen git iotop 
