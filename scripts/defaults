@@ -23,9 +23,9 @@ function gp { git commit -am "..."; git push; }
 alias apt="sudo apt"
 alias mkdir="mkdir -p"
 alias pacman="sudo pacman"
-alias df="df -h|egrep -v ''^(/dev/loop|tmpfs|udev)''"
+alias df="df -h|egrep -v '"'"'^(/dev/loop|tmpfs|udev)'"'"'"
 alias dfa=df
-alias mount="mount|egrep -v ''on /(snap|sys|dev|run|proc)''"
+alias mount="mount|egrep -v '"'"'on /(snap|sys|dev|run|proc)'"'"'"
 alias mounta=mount
 alias apt-get="sudo apt-get"
 alias apt="sudo apt"
@@ -36,7 +36,7 @@ alias z="egrep -v \"^[ \t]*[;#]\"|sed /^\s*$/d" #cat conf|z #to remove comments
 alias ips="ip addr|egrep \"(^.\:)|inet\\ \"|cut -d: -f1-2|sed s@inet@@g"
 alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\-get"
 alias dr="function _z(){ z=`pwgen 6 1`;docker exec \$1 touch /\$z;sudo find /var/lib/docker/|grep \$z|sed s@\$z@@;docker exec \$1 rm /\$z;};_z"
-alias killg="function _killg(){ ps auxf|grep $1|awk ''{system("sudo kill "$2)}''; };_killg"
+alias killg="function _killg(){ ps auxf|grep $1|awk '"'"'{system("sudo kill "$2)}'"'"'; };_killg"
 alias blah="function _blah(){ echo \"First: \$1\"; echo \"Second: \$2\"; };_blah"
 alias m="egrep -v \"^(shm|overlay|cgroup|tmpfs|debugfs|sysfs|systemd|nsfs|lxcfs|configs|binfmt|hugetlb|mqueue|pstore|securityfs|devpts|udev|proc|fusectl|configfs|efivarfs|tracefs)\" /proc/mounts "
 #end-defaults' >> $F
