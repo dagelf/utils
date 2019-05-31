@@ -10,9 +10,14 @@ echo aliases
 F=~/.bash_aliases
 grep -q \\#defaults $F && mv $F $F.tmp && cat $F.tmp | sed '/^\#defaults/,/^\#end-defaults/d' > $F && rm $F.tmp
 echo '#defaults
+[ -z "$DISPLAY" ] && DISPLAY=:0
 WLAN='$WLAN'
 ETH='$ETH'
-#DISPLAY=:0
+RES='$RES'
+WIN_USER='$WIN_USER'
+WIN_PASS='$WIN_PASS'
+GIT_USER='$GIT_USER'
+GIT_EMAIL='$GIT_EMAIL'
 alias apt="sudo apt"
 alias pacman="sudo pacman"
 alias dpa="docker ps -a"
