@@ -43,6 +43,7 @@ alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\
 alias dr="function _z(){ z=`pwgen 6 1`;docker exec \$1 touch /\$z;sudo find /var/lib/docker/|grep \$z|sed s@\$z@@;docker exec \$1 rm /\$z;};_z"
 alias killg="function _killg(){ ps auxf|grep \$1|awk '"'"'{system(\"sudo kill \"\$2)}'"'"'; };_killg"
 alias blah="function _blah(){ echo \"First: \$1\"; echo \"Second: \$2\"; };_blah"
+alias docki="function _docki(){ docker commit \$1 kak; idocker run -ti --name=kaka --entrypoint=\$2 kak; docker rm kaka; docker rmi kak; };_docki" # todo generate names and check params
 alias m="egrep -v '"'"' /(snap|sys|dev|run|proc)'"'"' /proc/mounts"
 #end-defaults' >> $F
 if [ -n "$GIT_EMAIL" ] && [ -e `which git` ]; then 
