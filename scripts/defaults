@@ -1,6 +1,8 @@
 #!/bin/sh -e
 [ -z "$RES" ] && (echo "# Run like this:\nRES=1280x960 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GIT_USER=\"\" GIT_EMAIL=\"\" $0"; exit 1;)
 
+echo todo sysctl defaults /etc/sysctl.d/20-coenraad.conf
+
 WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
 echo default wlan is $WLAN
 ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1` #todo fixme
@@ -36,6 +38,8 @@ alias apt="sudo apt"
 alias l="ls -lSr"
 alias pull="git pull"
 alias push="git push"
+alias rmmod="sudo rmmod"
+alias modprobe="sudo modprobe"
 alias add="git add"
 alias commit="git commit -am "
 alias files="find|cut -d\/ -f2|sort|uniq -c|sort -n"
