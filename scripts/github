@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $2x = x ]; then
+if [ $1x = x ]; then
  echo "github repo # is equivalent to git clone into repo if pwd is under /usr/src/github/user (https://github.com/`pwd|rev|cut -d\/ -f1|rev`/repo)"
  echo "github user/repo [target] # is equivalent to git clone https://github.com/user/repo /usr/src/github/user/target"
  exit
