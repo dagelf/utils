@@ -1,4 +1,9 @@
 #!/bin/sh
+pwd|grep github&&git clone https://github.com/`pwd|rev|cut -d\/ -f1`/$1&&exit
+if [ $2x == x ]; then
+ echo "$0 user/repo [target] # is equivalent to git clone https://github.com/user/repo /usr/src/github/user/target"
+ exit
+fi
 U=`echo $1|cut -d\/ -f1`
 P=`echo $1|cut -d\/ -f2-`
 cd /usr/src/github
