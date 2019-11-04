@@ -3,9 +3,9 @@
 
 echo todo sysctl defaults /etc/sysctl.d/20-coenraad.conf
 
-WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1` #todo fixme
+WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1|head -1` #todo fixme
 echo default wlan is $WLAN
-ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1` #todo fixme
+ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1|head -1` #todo fixme
 echo default eth is $ETH
 
 echo aliases
@@ -20,44 +20,10 @@ WIN_USER='$WIN_USER'
 WIN_PASS='$WIN_PASS'
 GIT_USER='$GIT_USER'
 GIT_EMAIL='$GIT_EMAIL'
-alias apt="sudo apt"
-alias pacman="sudo pacman"
-alias dpa="docker ps -a"
-alias dxxx="docker rm \"\$\(docker ps -a -q\)\""
-alias gam="function _gam { git commit -am "$*"; };_gam"
-alias gpm="function _gpm { git commit -am "$*"; git push; };_gpm"
-alias gp="git commit -am "..."; git push;"
-alias apt="sudo apt"
-alias mkdir="mkdir -p"
-alias pacman="sudo pacman"
-alias df="df -h|egrep -v '"'"'^(/dev/loop|tmpfs|udev)'"'"'"
-alias dfa=df
-alias m="mount|egrep -v '"'"'on /(snap|sys|dev|run|proc)'"'"'"
-alias apt-get="sudo apt-get"
-alias apt="sudo apt"
-alias l="ls -lSr"
-alias pull="git pull"
-alias push="git push"
-alias rmmod="sudo rmmod"
-alias modprobe="sudo modprobe"
-alias iptables="sudo iptables"
-alias add="git add"
-alias commit="git commit -am "
-alias files="find|cut -d\/ -f2|sort|uniq -c|sort -n"
-alias xtv="xtightvncviewer -compresslevel 9 -encodings \"tight copyrect coRRE\" -quality 3"
 alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS'"
-alias z="egrep -v \"^[ \t]*[;#]\"|sed /^\s*$/d" #cat conf|z #to remove comments
-alias ips="ip addr|egrep \"(^.\:)|inet\\ \"|cut -d: -f1-2|sed s@inet@@g"
-alias apks="grep Commandline /var/log/apt/history.log|cut -d: -f2-|grep -v apt\\-get"
-alias dr="function _z(){ z=`pwgen 6 1`;docker exec \$1 touch /\$z;sudo find /var/lib/docker/|grep \$z|sed s@\$z@@;docker exec \$1 rm /\$z;};_z"
-alias killg="function _killg(){ ps auxf|grep \$1|awk '"'"'{system(\"sudo kill \"\$2)}'"'"'; };_killg"
-alias blah="function _blah(){ echo \"First: \$1\"; echo \"Second: \$2\"; };_blah"
-alias docki="function _docki(){ docker commit \$1 kak; docker run -ti --name=kaka --entrypoint=\$2 kak; docker rm kaka; docker rmi kak; };_docki" # todo generate names and check params
-alias m="egrep -v '"'"' /(snap|sys|dev|run|proc)'"'"' /proc/mounts"
-#end-defaults-A' >> $F
+' >> $F
 cat `dirname "$0"`/aliases >> $F # got really old real quick debugging double quoting embedded functions
 echo '#end-defaults' >> $F
->>>>>>> 14398ab8b28038f73d0aaafeee51480599d5ebe9
 if [ -n "$GIT_EMAIL" ] && [ -e `which git` ]; then 
   echo git credentials
   git config --global user.email "$GIT_EMAIL"
