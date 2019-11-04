@@ -1,4 +1,14 @@
 #!/bin/sh
+if [ $1x = x ]; then
+ echo "github repo # is equivalent to git clone into repo if pwd is under /usr/src/github/user (https://github.com/`pwd|rev|cut -d\/ -f1|rev`/repo)"
+ echo "github user/repo [target] # is equivalent to git clone https://github.com/user/repo /usr/src/github/user/target"
+ exit
+fi
+pwd|grep github/ && git clone https://github.com/`pwd|rev|cut -d\/ -f1|rev`/$1 && exit
+if [ $2x = x ]; then
+ echo "$0 user/repo [target] # is equivalent to git clone https://github.com/user/repo /usr/src/github/user/target"
+ exit
+fi
 U=`echo $1|cut -d\/ -f1`
 P=`echo $1|cut -d\/ -f2-`
 cd /usr/src/github

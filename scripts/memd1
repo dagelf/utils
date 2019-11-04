@@ -1,0 +1,6 @@
+cat /proc/$1/maps | grep -Fv ".so" | grep " 0 " | awk '{print $1}' | ( IFS="-"
+    while read a b; do
+        ad=$(printf "%llu" "0x$a")
+        bd=$(printf "%llu" "0x$b")
+        dd if=/proc/$1/mem bs=1 skip=$ad count=$(( bd-ad )) of=$1_mem_$a.bin
+    done )

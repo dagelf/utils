@@ -1,0 +1,9 @@
+# grep -v '.so'
+# / 1000 = /4096 = bs
+cat /proc/$1/maps | grep -Fv '/' | grep " 0 " | cut -d\  -f1 | sed s@000\$@000-@g | sed s@000-@-@g | ( IFS="-"
+    while read a b; do
+       echo $a $b
+        _a=$(( $( /usr/bin/printf "%llu" "0x$a" ) ))
+        _b=$(( $( /usr/bin/printf "%llu" "0x$b" ) ))
+       dd if=/proc/$1/mem bs=4096 skip=$_a count=$(( $_b-$_a )) of=$1_mem_$a.bin
+    done )
