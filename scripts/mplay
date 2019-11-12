@@ -1,0 +1,1 @@
+sleep 1.9; while sleep 0.1; do cnee --replay -f /tmp/events.xnr --time 0; done
