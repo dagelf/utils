@@ -1,0 +1,1 @@
+cnee --record -o /tmp/events.xnr --mouse --events-to-record 50000 --time 2
