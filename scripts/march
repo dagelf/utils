@@ -1,0 +1,1 @@
+gcc -march=native -Q --help=target|grep march
