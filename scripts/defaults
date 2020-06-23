@@ -2,6 +2,8 @@
 [ -z "$RES" ] && (echo "# Run like this:\nRES=1280x960 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GIT_USER=\"\" GIT_EMAIL=\"\" $0"; exit 1;)
 
 echo todo sysctl defaults /etc/sysctl.d/20-coenraad.conf
+grep -q ^kernel.sysrq=1 /etc/sysctl.conf || echo "kernel.sysrq=1" >> /etc/sysctl.conf
+
 echo todo /etc/systemd/journald.conf SystemMaxUse=50M DebugInfoCacheMB = 0
 # journalctl --vacuum-size=50M
 
