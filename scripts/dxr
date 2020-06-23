@@ -1,3 +1,3 @@
 #!/bin/sh
 [ -z "$2" ] && echo "Runs docker image with X credentials\n Usage: dxr image command" && exit
-sudo docker run --volume /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 -e DISPLAY=$DISPLAY -ti $*
+docker run --init -v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 -e DISPLAY=$DISPLAY $*

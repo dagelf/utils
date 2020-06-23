@@ -17,7 +17,7 @@ EXAMPLE:
        echo \`dockertags mariadb\`
        
      - Also see:
-       https://hub.docker.com/r/library/*image*/
+       dockerfiles
 
 HELP
 exit 1

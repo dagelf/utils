@@ -1,0 +1,10 @@
+if [ -z $1 ]; then d=/temp; else d=$1; fi
+if [ -z $2 ]; then len=100; else len=$2; fi
+xx="oflag=direct"
+echo Okay to destroy $d \($len MB\)?...
+read
+for s in 1024 512 256 128 64 16 8 4 1; do 
+  a=$(( $s*1024 )); echo -ne "$(( $s ))k\t"; 
+  if [ \! -z $x ]; then  sync; echo 3|sudo tee /proc/sys/vm/drop_caches >/dev/null; fi;
+  nice -10 sudo dd if=/dev/zero of=$d bs=$(( $a )) count=$(( $len*1024*1024/$a )) $xx 2>&1|grep -v records;  sleep 3; 
+done

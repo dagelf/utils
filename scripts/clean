@@ -1,0 +1,6 @@
+
+# end bash processes waiting at the terminal prompt - and some other common clutterers
+for a in bc ping rdesktop; do 
+ sudo killall $a;
+done;
+sudo ps -aelf|grep bash|grep poll_s|sudo awk '{system("kill "$4)}'
