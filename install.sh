@@ -12,6 +12,9 @@ which wget >/dev/null || {
 
 if $S whoami; then 
 echo Installing globally...
+# todo copy from defaults or make more modular
+grep -q ^kernel.sysrq=1 /etc/sysctl.conf || echo "kernel.sysrq=1" | $S tee -a /etc/sysctl.conf
+$S journalctl --vacuum-size=50M
 echo scripts
 $S cp scripts/* /usr/local/bin
 f=/etc/screenrc; echo $f
