@@ -1,0 +1,42 @@
+#!/bin/sh -e
+echo \# Aliases and Environment defaults...
+[ -z "$RES" ] && (echo "# Run like this:\nRES=1280x960 WIN_USER=\"Administrator\" WIN_PASS=\"-\" GIT_USER=\"\" GIT_EMAIL=\"\" $0"; exit 1;)
+
+echo todo sysctl defaults /etc/sysctl.d/20-coenraad.conf
+grep -q ^kernel.sysrq=1 /etc/sysctl.conf || echo "kernel.sysrq=1" >> /etc/sysctl.conf
+
+echo todo /etc/systemd/journald.conf SystemMaxUse=50M DebugInfoCacheMB = 0
+# journalctl --vacuum-size=50M
+
+WLAN=`ip link|cut -d\  -f2|grep ^w|cut -d: -f1|head -1` #todo fixme
+echo default wlan is $WLAN
+ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1|head -1` #todo fixme
+echo default eth is $ETH
+
+echo aliases
+F=~/.bash_aliases
+grep -q \\#defaults $F && mv $F $F.tmp && cat $F.tmp | sed '/^\#defaults/,/^\#end-defaults/d' > $F && rm $F.tmp
+echo '#defaults
+[ -z "$DISPLAY" ] && DISPLAY=:0
+WLAN="'$WLAN'"
+ETH="'$ETH'"
+RES="'$RES'"
+WIN_USER="'$WIN_USER'"
+WIN_PASS="'$WIN_PASS'"
+GIT_USER="'$GIT_USER'"
+GIT_EMAIL="'$GIT_EMAIL'"
+SERVERS="'$SERVERS'"
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS'"
+' >> $F
+cat `dirname "$0"`/aliases >> $F # got really old real quick debugging double quoting embedded functions
+echo '#end-defaults' >> $F
+if [ -n "$GIT_EMAIL" ] && [ -e `which git` ]; then 
+  echo git credentials
+  git config --global user.email "$GIT_EMAIL"
+  git config --global user.name "$GIT_USER"
+  git config --global push.default simple
+fi 
+echo Done\!
+
+echo source $F \# if you want it already
+#apt install screen git iotop 
