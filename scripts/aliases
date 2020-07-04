@@ -3,6 +3,7 @@ alias aa='function _aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)
 alias aaa='function _aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};_aaa'
 alias add='git add'
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
+alias apt='sudo apt'
 alias apt-get='sudo apt-get'
 alias blah='function _blah(){ echo "First: $1"; echo "Second: $2"; };_blah'
 alias commit='git commit -am '
