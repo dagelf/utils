@@ -22,11 +22,10 @@ which earlyoom >/dev/null || {
 grep -q ^kernel.sysrq=1 /etc/sysctl.conf /etc/sysctl.d/*|| echo "kernel.sysrq=1" | $S tee -a /etc/sysctl.conf
 echo Trimming systemd journal...
 $S journalctl --vacuum-size=50M
-$S cp scripts/* /usr/local/bin
-f=/etc/screenrc; echo $f
+$S cp scripts/* /usr/local/bin # fixme move more to aliases, also clean up old utils still scattered on various machines?
+f=/etc/screenrc; echo $f # enable mouse wheel scroll in screen
 grep -q '^termcapinfo xterm* ti@:te@' $f || echo 'termcapinfo xterm* ti@:te@'|$S tee -a $f
-echo Enable ssh socket reuse...
-f=/etc/ssh/ssh_config; echo $f
+f=/etc/ssh/ssh_config; echo $f # enable socket reuse
 if ! grep -q ControlPersist $f; then 
 cat <<EOF | $S tee -a $f
 	ControlMaster auto
@@ -34,10 +33,8 @@ cat <<EOF | $S tee -a $f
 	ControlPersist 600
 EOF
 fi
-echo Adding src group and updating /usr/src
 $S chgrp src /usr/src
 $S chmod g+s /usr/src
-echo Adding `whoami` to src...
 $S usermod -a -G src `whoami` # add current user to src group
 $S mkdir -p /usr/src/github # todo - make git pulls from github pull here under username
 else 
