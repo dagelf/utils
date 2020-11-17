@@ -37,7 +37,8 @@ alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
 alias vi='vim'
-function wh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
+function wh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
+function whh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias yum='sudo yum'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
