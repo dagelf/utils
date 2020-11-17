@@ -1,4 +1,4 @@
-alias a='function _a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort;wait;)};_a'
+alias a='function _a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};_a'
 alias aa='function _aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};_aa'
 alias aaa='function _aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};_aaa'
 alias add='git add'
