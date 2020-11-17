@@ -12,19 +12,19 @@ alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias dfa='df'
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
-function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z;}; 
+function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
 alias dxxx='docker rm "$\(docker ps -a -q\)"'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias gam='git commit -am '
-function gp { git commit -am "$*"||git commit -am ...; git push; }; unalias gp;
-function gpm { git commit -am "$*" && git push; }; unalias gpm;
+function gp { git commit -am "$*"||git commit -am ...; git push; }; 
+function gpm { git commit -am "$*" && git push; }; 
 alias gpp='git commit -am ...; git push;'
 alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
-function killg(){ ps auxf|grep $1|awk '\''{system("sudo kill "$2)}'\''; }
+function killg(){ ps auxf|grep $1|awk '\''{system("sudo kill "$2)}'\''; };
 alias l='ls -lSr'
 alias l.='ls -d .* --color=auto'
 alias ll='ls -l --color=auto'
