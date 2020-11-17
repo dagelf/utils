@@ -1,17 +1,18 @@
-function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)}; unalias a;
-function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)}; unalias aa;
-function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)}; unalias aaa;
+# FYI any aliases will override functions. TODO test on other shells... reinstate functions embedded in aliases if its a problem
+function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)}; 
+function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)}; 
+function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};
 alias add='git add'
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
-function blah(){ echo "First: $1"; echo "Second: $2"; }; unalias blah;
+function blah(){ echo "First: $1"; echo "Second: $2"; }; 
 alias commit='git commit -am '
 alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias dfa='df'
-function docki(){ docker commit $1 kak; docker run -ti --name=kaka --entrypoint=$2 kak; docker rm kaka; docker rmi kak; }; unalias docki;
+function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
-function dr(){ z=Phoo3r;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z;}; unalias dr;
+function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z;}; 
 alias dxxx='docker rm "$\(docker ps -a -q\)"'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
@@ -23,7 +24,7 @@ alias gpp='git commit -am ...; git push;'
 alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
-alias killg='function _killg(){ ps auxf|grep $1|awk '\''{system("sudo kill "$2)}'\''; };_killg'
+function killg(){ ps auxf|grep $1|awk '\''{system("sudo kill "$2)}'\''; }
 alias l='ls -lSr'
 alias l.='ls -d .* --color=auto'
 alias ll='ls -l --color=auto'
@@ -36,7 +37,7 @@ alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
 alias vi='vim'
-function wh(){ /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias|grep "$1"; echo `set|grep -A3 "^$1"`; }; unalias wh;
+function wh(){ /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias|grep "$1"; echo `set|grep -A3 "^$1"`; };
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias yum='sudo yum'
-function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; unalias z;
+function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
