@@ -36,7 +36,7 @@ alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
 alias vi='vim'
-function wh(){ /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias|grep "$1"; echo `set|grep -A3 "^$1"`; }; 
+function wh(){ /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias|grep "$1"; echo `set|grep -A3 "^$1"`; }; unalias wh;
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias yum='sudo yum'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; unalias z;
