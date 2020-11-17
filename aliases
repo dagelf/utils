@@ -1,24 +1,24 @@
-alias a='function _a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};_a'
-alias aa='function _aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};_aa'
-alias aaa='function _aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};_aaa'
+function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)}; unalias a;
+function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)}; unalias aa;
+function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)}; unalias aaa;
 alias add='git add'
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
-alias blah='function _blah(){ echo "First: $1"; echo "Second: $2"; };_blah'
+function blah(){ echo "First: $1"; echo "Second: $2"; }; unalias blah;
 alias commit='git commit -am '
 alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias dfa='df'
-alias docki='function _docki(){ docker commit $1 kak; docker run -ti --name=kaka --entrypoint=$2 kak; docker rm kaka; docker rmi kak; };_docki'
+function docki(){ docker commit $1 kak; docker run -ti --name=kaka --entrypoint=$2 kak; docker rm kaka; docker rmi kak; }; unalias docki;
 alias dpa='docker ps -a'
-alias dr='function _z(){ z=Phoo3r;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z;};_z'
+function dr(){ z=Phoo3r;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z;}; unalias dr;
 alias dxxx='docker rm "$\(docker ps -a -q\)"'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias gam='git commit -am '
-alias gp='function _gp { git commit -am "$*"||git commit -am ...; git push; };_gp'
-alias gpm='function _gp { git commit -am "$*" && git push; };_gp'
+function gp { git commit -am "$*"||git commit -am ...; git push; }; unalias gp;
+function gpm { git commit -am "$*" && git push; }; unalias gpm;
 alias gpp='git commit -am ...; git push;'
 alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
@@ -36,7 +36,7 @@ alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
 alias vi='vim'
-alias wh='function _w(){(/usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde||alias|grep "$1")};_w'
+function wh(){ /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias|grep "$1"; echo `set|grep -A3 "^$1"`; }; 
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias yum='sudo yum'
-alias z='function _z(){ sed /^\s*$/d "$1"|egrep -v "^[ \t]*[;#]"; };_z'
+function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; unalias z;
