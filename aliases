@@ -24,7 +24,7 @@ alias gpp='git commit -am ...; git push;'
 alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
-function killg(){ ps auxf|grep $1|awk '\''{system("sudo kill "$2)}'\''; };
+alias killg=pkill
 alias l='ls -lSr'
 alias l.='ls -d .* --color=auto'
 alias ll='ls -l --color=auto'
