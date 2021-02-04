@@ -1,0 +1,2 @@
+[ \! -e /tmp/findlibs ] && find /lib /usr/lib /usr/local/lib -type f -name \*.a -printf \%p:  -exec 1l objdump -x {} \; 2>/dev/null > /tmp/findlibs
+grep $1 /tmp/findlibs|cut -d: -f1
