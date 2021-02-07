@@ -7,4 +7,31 @@
  wipe=sda;hdparm --user-master u --security-set-pass pass /dev/$wipe;hdparm -I /dev/$wipe;
    time hdparm --user-master u --security-erase pass /dev/$wipe;hdparm -I /dev/$wipe
  
+
+# disable screen blanking. 
+export DISPLAY=:0
+xset s off
+xset s noblank
+xset -dpms   # these are nonpersistent, I think. The following is persistant
+gsettings set org.gnome.desktop.lockdown disable-lock-screen 'true' # disable gnome screen lock
+gsettings get org.gnome.desktop.lockdown disable-lock-screen
+gsettings set org.gnome.desktop.lockdown disable-lock-screen 'false' # enable gnome screen lock
+# disable lid switch:
+/etc/systemd/logind.conf
+    HandleLidSwitch=ignore – do nothing.
+#    HandleLidSwitch=lock – lock when lid closed.
+#    HandleLidSwitch=poweroff – shutdown.
+#    HandleLidSwitch=hibernate – hibernate Ubuntu.
+# systemctl restart systemd-logind.service # apply
+# sudo systemctl hibernate # test hibernation 
+
+# disable systemd-resolved and local dnsmasq
+sudo systemctl disable systemd-resolved
+sudo systemctl stop systemd-resolved
+/etc/NetworkManager/NetworkManager.conf
+[main]
+dns=default
+rm /etc/resolv.conf
+sudo systemctl restart NetworkManager
+
   
