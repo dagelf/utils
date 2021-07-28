@@ -42,3 +42,5 @@ function whh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-ti
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1024x768 -u Administrator -p -'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
+# usage popline file [line_count, 1 by default] # ala mosvy@so https://unix.stackexchange.com/questions/474838/how-to-pop-readremove-a-line-of-a-file
+popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")
