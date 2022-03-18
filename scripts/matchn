@@ -1,0 +1,4 @@
+#!/bin/sh
+[ -z $3 ] && echo $0 file \[match n\]+... \# to output line n after match && exit
+f=$1; shift; while [ \! -z $2 ]; do s="$s/$1/{c=$2};"; shift; shift; done
+awk 'c&&!--c;'$s $f
