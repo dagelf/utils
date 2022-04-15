@@ -10,6 +10,7 @@ function blah(){ echo "First: $1"; echo "Second: $2"; };
 alias commit='git commit -am '
 alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias dfa='df'
+function du { du "$*" --max-depth 2|sort -n|grep /.+/; }; 
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
