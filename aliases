@@ -46,6 +46,6 @@ function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; };
 # usage popline file [line_count, 1 by default] # ala mosvy@so https://unix.stackexchange.com/questions/474838/how-to-pop-readremove-a-line-of-a-file
 popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")
 type() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
-function send() { h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1 }
+function send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
 function ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
 
