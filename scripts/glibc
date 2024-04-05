@@ -1,0 +1,1 @@
+find /usr/lib -name libc.so.6 -exec strings {} \;|grep GLIBC|sort -t. -k2 -n
