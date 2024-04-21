@@ -5,8 +5,7 @@ cd "$(dirname -- "$0")" 2>/dev/null # allows script to be called from another di
 # then just sudo cp to /usr/local/bin and tee /etc/screenrc
 S=false
 echo -n "Install as root? (Y/n) "; read a; [ "$a" != "n" ] && [ "$a" != "N" ] && S=`which sudo`
-if ($S whoami) > /dev/null; then 
-(whoami|grep root&&S="") >/dev/null
+if whoami|grep root&&S="" >/dev/null || ($S whoami) >/dev/null; then # don't need sudo if we are root, else check if sudo exists
 echo Installing globally...
 which wget >/dev/null || {
   echo Installing wget...
