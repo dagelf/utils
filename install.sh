@@ -5,6 +5,7 @@ cd "$(dirname -- "$0")" 2>/dev/null # allows script to be called from another di
 # then just sudo cp to /usr/local/bin and tee /etc/screenrc
 S=false
 echo -n "Install as root? (Y/n) "; read a; [ "$a" != "n" ] && [ "$a" != "N" ] && S=`which sudo`
+
 if whoami|grep root&&S="" >/dev/null || ($S whoami) >/dev/null; then # don't need sudo if we are root, else check if sudo exists
 echo Installing globally...
 which wget >/dev/null || {
@@ -31,19 +32,20 @@ cat <<EOF | $S tee -a $f
 	ControlPath ~/.ssh/socket-%r@%h-%p
 	ControlPersist 600
 EOF
-fi
-$S chgrp src /usr/src
+fi 
+$S chgrp src /usr/src # create a src group that has access to /usr/src
 $S chmod g+s /usr/src
 $S usermod -a -G src `whoami` # add current user to src group
 $S mkdir -p /usr/src/github # todo - make git pulls from github pull here under username
-else 
-echo Installing for `whoami` only... you\'re missing out\!
-mkdir ~/bin 2>/dev/null
-cp scripts/* ~/bin 
-echo Enable mouse scrolling in screenrc...
-echo 'termcapinfo xterm* ti@:te@'|tee -a ~/.screenrc
-echo Can\'t do permissions and groups without root
-fi
+
+else # end global/root install 
+	echo Installing for `whoami` only... you\'re missing out on oom-killer, src group, ssh and screen configs, alt+sysrq+f\!
+	mkdir ~/bin 2>/dev/null
+	cp scripts/* ~/bin # this is in the path on most distributions
+	echo Enable mouse scrolling in screenrc...
+	echo 'termcapinfo xterm* ti@:te@'|tee -a ~/.screenrc
+q	echo Can\'t do permissions and groups without root
+fi 
 
 ./defaults
 
