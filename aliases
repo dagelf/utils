@@ -1,16 +1,18 @@
 # FYI any aliases will override functions. TODO test on other shells... reinstate functions embedded in aliases if its a problem
-function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)}; 
-function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)}; 
-function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};
+function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
+function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
+function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 alias add='git add'
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
-function blah(){ echo "First: $1"; echo "Second: $2"; }; 
+function blah(){ echo "First: $1"; echo "Second: $2"; }; # useful when you need to append something at end of a command... can we make xargs just with a function?
 alias commit='git commit -am '
-alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
-alias dfa='df'
-function du { du "$*" --max-depth 2|sort -n|grep /.+/; }; 
+alias wha=`which which` # override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
+function which () { wha $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
+function wh () { wha $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
+alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''        # can refer to self and get the original in an alias
+function du { `wha du` "$*" --max-depth 2|sort -n|grep /.+/; }; # but not in a function
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
@@ -38,8 +40,6 @@ alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
 alias vi='vim'
-function wh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
-function whh () { /usr/bin/which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1024x768 -u Administrator -p -'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
