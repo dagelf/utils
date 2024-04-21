@@ -1,0 +1,3 @@
+#!/bin/sh
+# show all the locations where python packages are installed. requires mlocate and to have run updatedb 
+locate -r '/....-packages/'|grep -v '/pkgs/'|sed 's|/....-packages/.*$||' |uniq -c|sort -n
