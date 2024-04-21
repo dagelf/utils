@@ -13,7 +13,7 @@ echo default wlan is $WLAN
 ETH=`ip link|cut -d\  -f2|grep ^e|cut -d: -f1|head -1` #todo fixme
 echo default eth is $ETH
 
-echo aliases
+echo aliases # ---------------------------------------------------------------------------------------------------------------------------------
 F=~/.bash_aliases
 grep -q \\#defaults $F && mv $F $F.tmp && cat $F.tmp | sed '/^\#defaults/,/^\#end-defaults/d' > $F && rm $F.tmp
 echo '#defaults
@@ -28,15 +28,20 @@ export GIT_EMAIL="'$GIT_EMAIL'"
 export SERVERS="'$SERVERS'"
 alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g '$RES' -u '$WIN_USER' -p '$WIN_PASS'"
 ' >> $F
-cat `dirname "$0"`/aliases >> $F # got really old real quick debugging double quoting embedded functions
+
+cat `dirname "$0"`/aliases >> $F 
+
 echo '#end-defaults' >> $F
+
 if [ -n "$GIT_EMAIL" ] && [ -e `which git` ]; then 
   echo git credentials
   git config --global user.email "$GIT_EMAIL"
   git config --global user.name "$GIT_USER"
   git config --global push.default simple
 fi 
+
 echo Done\!
 
 echo source $F \# if you want it already
+
 #apt install screen git iotop 
