@@ -8,16 +8,20 @@ alias apt='sudo apt'
 alias apt-get='sudo apt-get'
 function blah(){ echo "First: $1"; echo "Second: $2"; }; # useful when you need to append something at end of a command... can we make xargs just with a function?
 alias commit='git commit -am '
-alias wha=`which which` # override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
+alias wha=`which which` # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
 function which () { wha $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
 function wh () { wha $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
-alias df='df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''        # can refer to self and get the original in an alias
+alias dfa=`wha df`
+alias df='dfa -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''        # can refer to self and get the original in an alias
+alias la=`wha ls`
+alias L='la -lSr'
+function ls () { la -ltr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}' }; # TODO override if opts given
 function du { `wha du` "$*" --max-depth 2|sort -n|grep /.+/; }; # but not in a function
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
 alias dxxx='docker rm "$\(docker ps -a -q\)"'
-alias egrep='egrep --color=auto'
+alias egrep='grep --color=auto -E '
 alias fgrep='fgrep --color=auto'
 alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias gam='git commit -am '
@@ -28,10 +32,8 @@ alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
 alias killg=pkill
-alias L='ls -lSr'
 alias ll='ls -ltr'
-alias ls='ls -ltr --color=auto'
-alias m='egrep -v '\'' /(snap|sys|dev|run|proc)'\'' /proc/mounts'
+alias m='egrep -v '\'' /(snap|sys|dev|run|proc|portal|gvfsd)'\'' /proc/mounts'
 alias mkdir='mkdir -p'
 alias modprobe='sudo modprobe'
 alias pacman='sudo pacman'
