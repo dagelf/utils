@@ -3,6 +3,7 @@ function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait
 function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
 function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 alias add='git add'
+function m(){curl cheat.sh/$1} # like tldr, better than man
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
@@ -15,8 +16,8 @@ alias dfa=`wha df`
 alias df='dfa -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''        # can refer to self and get the original in an alias
 alias la=`wha ls`
 alias L='la -lSr'
-function ls () { la -ltr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}' }; # TODO override if opts given
-function du { `wha du` "$*" --max-depth 2|sort -n|grep /.+/; }; # but not in a function
+function ls () { la -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}' }; # TODO override if opts given
+function du { `wha du` -h --max-depth 2 $*}|sort -h; } # but not in a function
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
