@@ -51,4 +51,5 @@ popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s 
 type() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
 function send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
 function ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
+alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 
