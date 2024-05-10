@@ -16,10 +16,10 @@ alias wha=$which # so we can override which to show aliases and functions too...
 function which () { $which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
 function wh () { $which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
 alias df='$df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''       # can refer to self and get the original in an alias
-ls=`which ls`
-la="$ls -la"
-alias L="$ls -lSr"
-function ls () { $ls -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
+ls=`$which ls`
+la="$ls --color -la"
+alias L="$ls --color -lSr"
+function ls () { $ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
 function du() { `$which du` -h --max-depth 2 "${1:-.}" }|sort -h; }; # but not in a function
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
