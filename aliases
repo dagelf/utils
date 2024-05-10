@@ -2,8 +2,8 @@
 function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
 function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
 function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
-alias add='git add'
-function m(){curl cheat.sh/$1} # like tldr, better than man
+alias add='git add';
+function m() { curl cheat.sh/$1; } # like tldr, better than man
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
@@ -52,4 +52,5 @@ type() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
 function send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
 function ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
+alias procs="sudo ls -l /proc/*/exe|awk '{print $11}'|sed -E s@^/.+\/@@g|sort|uniq -c|sort -n"
 
