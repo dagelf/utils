@@ -20,7 +20,7 @@ ls=`which ls`
 la="$ls -la"
 alias L="$ls -lSr"
 function ls () { $ls -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
-function du { `$which du` -h --max-depth 2 $*}|sort -h; }; # but not in a function
+function du() { `$which du` -h --max-depth 2 "${1:-.}" }|sort -h; }; # but not in a function
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
