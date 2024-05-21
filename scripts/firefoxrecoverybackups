@@ -1,5 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 # copy these to ../sessionstore.jsonlz4 to recover the backed up session
 PATH=/usr/bin:$PATH
 cd ~/.mozilla/firefox
-for a in *.*; do cp $a/sessionstore-backups/recovery.jsonlz4 $a/sessionstore-backups/recovery.jsonlz4.`date +%y%m%d%-H%M%S`; done
+for a in *.*; do 
+	if [[ "$a" == *.ini ]]; then
+		continue
+	fi
+	cp "$a/sessionstore-backups/recovery.jsonlz4" "$a/sessionstore-backups/recovery.jsonlz4.`date +%y%m%d%-H%M%S`"; 
+	cp "$a/sessionstore-backups/previous.jsonlz4" "$a/sessionstore-backups/previous.jsonlz4.`date +%y%m%d%-H%M%S`"; 
+done
