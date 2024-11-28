@@ -1,0 +1,63 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::stat;
+use Text::CSV;
+
+my $macs_url = 'https://standards-oui.ieee.org/oui/oui.csv';
+my $macs_file = 'Downloads/oui.csv';
+
+# Hash to store MAC address prefixes and their corresponding vendor names
+my %mac_vendors;
+
+# Function to download the MAC address vendor list using curl if it doesn't exist or is outdated
+sub download_mac_vendor_list {
+
+    if (!-e $macs_file || is_outdated($macs_file)) {
+        print "Downloading the MAC address vendor list...\n";
+        system("curl -o $macs_file $macs_url");
+        if ($? != 0) {
+            die "Failed to download the MAC address vendor list.\n";
+        }
+    }
+}
+
+# Function to check if a file is more than 3 months old
+sub is_outdated {
+    my ($filename) = @_;
+    my $st = stat($filename);
+    my $three_months_ago = time() - (3 * 30 * 24 * 60 * 60); # 3 months in seconds
+    return $st->mtime < $three_months_ago;
+}
+
+sub lookup_mac_vendor {
+    my ($mac) = @_;
+    $mac =~ s/[:-]//g; # Remove colons and hyphens from the input MAC address
+    my $vendor = $mac_vendors{uc(substr($mac, 0, 6))}; # 6 characters to match without colons and hyphens
+    return $vendor ? substr($mac, 6, 6) . " $vendor" : $mac;
+}
+
+sub main {
+    download_mac_vendor_list();
+
+    # Read the MAC address vendor list and populate the hash using CSV parser
+    my $csv = Text::CSV->new({ binary => 1 }) or die "Cannot use CSV: " . Text::CSV->error_diag();
+    open(my $vendor_fh, '<', $macs_file) or die "Couldn't open file $macs_file: $!";
+    while (my $row = $csv->getline($vendor_fh)) {
+        next if @$row < 4; # Skip invalid rows
+        my (undef, $prefix, $vendor, undef) = @$row;
+        $mac_vendors{uc($prefix)} = $vendor;
+    }
+    close($vendor_fh);
+
+    # Main loop to read from stdin and substitute MAC addresses with vendor names
+    while (<>) {
+        s/([0-9A-Fa-f]{12})/lookup_mac_vendor($&)/ge ||
+        s/(([0-9A-Fa-f]{2}[-:]){5}[0-9A-Fa-f]{2})/lookup_mac_vendor($&)/ge;
+        print;
+    }
+}
+
+main();
+
