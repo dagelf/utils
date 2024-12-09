@@ -9,18 +9,15 @@ alias apt='sudo apt'
 alias apt-get='sudo apt-get'
 function blah(){ echo "First: $1"; echo "Second: $2"; }; # useful when you need to append something at end of a command... can we make xargs just with a function?
 alias commit='git commit -am '
-df=`which df`
-alias dfa=$df
-which=`which which`
-alias wha=$which # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
-function which () { $which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
-function wh () { $which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
-alias df='$df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''       # can refer to self and get the original in an alias
-ls=`$which ls`
-la="$ls --color -la"
-alias L="$ls --color -lSr"
-function ls () { $ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
-function du() { `$which du` -h --max-depth 2 "${1:-.}" }|sort -h; }; # but not in a function
+alias dfa=command df
+alias wha=command which # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
+function which () { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
+alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''       # can refer to self and get the original in an alias
+alias la="command ls --color -la"
+alias ll='command ls -ltr'
+alias L="command ls --color -lSr"
+function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; }; 
+function du() { command du -h --max-depth 2 "${1:-.}" }|sort -h; }; 
 function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
 alias dpa='docker ps -a'
 function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
@@ -36,7 +33,6 @@ alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
 alias killg=pkill
-alias ll='ls -ltr'
 alias m='egrep -v '\'' /(snap|sys|dev|run|proc|portal|gvfsd)'\'' /proc/mounts'
 alias mkdir='mkdir -p'
 alias modprobe='sudo modprobe'
