@@ -1,0 +1,23 @@
+#!/bin/sh
+# git-remote-add [remote_name] host path or host:path
+
+if [ $# -eq 1 ]; then
+    host=${1%%:*}
+    path=${1#*:}
+    remote_name="origin"
+elif [ $# -eq 2 ]; then
+    host=$1
+    path=$2
+    remote_name="origin"
+elif [ $# -eq 3 ]; then
+    remote_name=$1
+    host=$2
+    path=$3
+else
+    echo "Usage: $0 [remote_name] host path or host:path"
+    exit 1
+fi
+
+git remote add "$remote_name" "$host:$path"
+ssh "$host" "cd $path; git config receive.denyCurrentBranch updateInstead"
+git push "$remote_name" master
