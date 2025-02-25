@@ -1,3 +1,24 @@
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1366x768 -u coenraad -p Asdlkj,,abc123 -r disk:share=. "
+alias pacman="sudo pacman"
+alias p="sudo pacman -S"
+function ss(){ sudo pacman -S $(pacman -Ss $* | fzf --tac -1 -0|awk '{print $1}' ); }
+function s(){ yay -S $(yay -Ss $* | fzf --tac -1 -0|awk '{print $1}' ); }
+alias o="pacman -Qo "
+alias convert="magick " 
+function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; }; 
+
+#defaults
+[ -z "$DISPLAY" ] && export DISPLAY=:0
+export WLAN="wg0"
+export ETH="enp3s0"
+export RES=""
+export WIN_USER=""
+export WIN_PASS=""
+export GIT_USER=""
+export GIT_EMAIL=""
+export SERVERS=""
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g  -u  -p "
+
 # FYI any aliases will override functions. TODO test on other shells... reinstate functions embedded in aliases if its a problem
 function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
 function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
@@ -9,8 +30,8 @@ alias apt='sudo apt'
 alias apt-get='sudo apt-get'
 function blah(){ echo "First: $1"; echo "Second: $2"; }; # useful when you need to append something at end of a command... can we make xargs just with a function?
 alias commit='git commit -am '
-alias dfa=command df
-alias wha=command which # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
+alias dfa="command df"
+alias wha="command which" # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
 function which () { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
 alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''       # can refer to self and get the original in an alias
 alias la="command ls --color -la"
@@ -41,6 +62,7 @@ alias yum='sudo yum'
 alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
+alias vi='command vim||command vi'
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1024x768 -u Administrator -p -'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
@@ -55,3 +77,4 @@ alias docker-runlike="docker run --rm -v /var/run/docker.sock:/var/run/docker.so
 function tldr() { curl cheat.sh/$1; };
 
 
+#end-defaults
