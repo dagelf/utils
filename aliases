@@ -73,8 +73,9 @@ function send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
 function ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 alias procs="sudo ls -l /proc/*/exe|awk '{print \$11}'|sed -E s@^/.+\/@@g|sort|uniq -c|sort -n"
+
 alias docker-runlike="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro assaflavie/runlike "
 function tldr() { curl cheat.sh/$1; };
-
+alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
 
 #end-defaults

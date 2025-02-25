@@ -1,1 +1,4 @@
 echo pip install dfimage # snag, you have to download the image... or visit hub.docker.com and view Dockerfile ... sorry
+echo better:
+echo alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
+echo already in your aliases
