@@ -41,7 +41,6 @@ alias yum='sudo yum'
 alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
-alias vi='vim'
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1024x768 -u Administrator -p -'
 function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
