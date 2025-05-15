@@ -4,12 +4,11 @@
 # KEY=password ob [[line] args]# runs encrypted command - todo: find a portable way to use kernel key and/or secure hardware element, from terminal
 # example: KEY=password ./ob 2
 # to add more obfuscated commands: 
-#  echo "uptime"|openssl aes-256-cbc -a -k password >> ob # uptime = command, password = password
+#  echo "uptime"|openssl aes-256-cbc -pbkdf2 -a -k password >> ob # uptime = command, password = password
 L=$1; [ -z "$L" ] && L=1
 shift
 F=13 # line in this file with first command
 CMD=`head -$(($F+$L)) $0|tail -1` 
-echo `echo "$CMD"|openssl aes-256-cbc -a -d -salt -k $KEY` $*|sh
+echo `echo "$CMD"|openssl aes-256-cbc -pbkdf2 -a -d -salt -k $KEY` $*|sh
 exit
-U2FsdGVkX189xrfkeMKOdEILEeKPuFwtGdvIEtPJojQ=
-U2FsdGVkX1+vBgIRRJe8fv0p0bj9HuQm8wCDwT7WA/k=
+U2FsdGVkX1/5GuINy++trFd5IuMAdgnw7YRrbwD1GkM=

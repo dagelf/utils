@@ -26,6 +26,12 @@ $S journalctl --vacuum-size=50M
 
 f=/etc/screenrc; echo $f # enable mouse wheel scroll in screen
 grep -q '^termcapinfo xterm* ti@:te@' $f || echo 'termcapinfo xterm* ti@:te@'|$S tee -a $f
+grep -q '^defscrollback' $f || echo 'defscrollback 10000'|$S tee -a $f
+grep -q '^startup_message' $f || echo 'startup_message off'|$S tee -a $f
+grep -q '^hardstatus' $f || $S tee -a $f <<EOF
+hardstatus alwayslastline
+hardstatus string '%{gk}[%{wk}%?%-Lw%?%{=b kR}(%{W}%n*%f %t%?(%u)%?%{=b kR})%{= w}%?%+Lw%?%? %{g}][%{d}%l%{g}][ %{= w}%Y/%m/%d %0C:%s%a%{g} ]%{W}'
+EOF
 
 f=/etc/ssh/ssh_config; echo $f # enable socket reuse
 if ! grep -q ControlPersist $f; then 
