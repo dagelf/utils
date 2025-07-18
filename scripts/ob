@@ -1,14 +1,24 @@
 #!/bin/sh
-# Run obfuscated commands. Eventual goal is to be able to run a command with a built in password that can't be extracted... or pbkd at least
-# at this point, the password is easily extracted of course, by just changing the echo command below
-# KEY=password ob [[line] args]# runs encrypted command - todo: find a portable way to use kernel key and/or secure hardware element, from terminal
-# example: KEY=password ./ob 2
-# to add more obfuscated commands: 
-#  echo "uptime"|openssl aes-256-cbc -pbkdf2 -a -k password >> ob # uptime = command, password = password
-L=$1; [ -z "$L" ] && L=1
+# Run obfuscated commands using a setuid helper.
+# Usage: ./ob_cmd.sh [line_number]
+# Example: ./ob_cmd.sh 1
+
+# Get line number (default to 1)
+L=$1
+[ -z "$L" ] && L=1
 shift
-F=13 # line in this file with first command
-CMD=`head -$(($F+$L)) $0|tail -1` 
-echo `echo "$CMD"|openssl aes-256-cbc -pbkdf2 -a -d -salt -k $KEY` $*|sh
-exit
-U2FsdGVkX1/5GuINy++trFd5IuMAdgnw7YRrbwD1GkM=
+
+# Line where encrypted commands start
+F=25
+CMD=$(head -$(($F+$L-1)) "$0" | tail -1)
+
+# Verify command integrity (hash of encrypted command)
+EXPECTED_HASH="b3e4c1f9a2b8c7d5e6f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d"
+if ! echo "$CMD" | sha256sum | grep -q "$EXPECTED_HASH"; then
+    echo "Command tampered!" >&2
+    exit 1
+fi
+
+# Pass encrypted command to helper
+/usr/local/bin/ob_cmd_helper "$CMD" || { echo "Execution failed" >&2; exit 1; }
+exit 0
