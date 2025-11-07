@@ -1,59 +1,63 @@
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1366x768 -u coenraad -p Asdlkj,,abc123 -r disk:share=. "
-alias pacman="sudo pacman"
-alias p="sudo pacman -S"
-function ss(){ sudo pacman -S $(pacman -Ss $* | fzf --tac -1 -0|awk '{print $1}' ); }
-function s(){ yay -S $(yay -Ss $* | fzf --tac -1 -0|awk '{print $1}' ); }
-alias o="pacman -Qo "
-alias convert="magick " 
-function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; }; 
-
 #defaults
-[ -z "$DISPLAY" ] && export DISPLAY=:0
-export WLAN="wg0"
-export ETH="enp3s0"
-export RES=""
-export WIN_USER=""
-export WIN_PASS=""
-export GIT_USER=""
-export GIT_EMAIL=""
-export SERVERS=""
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g  -u  -p "
 
-# FYI any aliases will override functions. TODO test on other shells... reinstate functions embedded in aliases if its a problem
-function a(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
-function aaa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
-function aa(){(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
-function m() { curl cheat.sh/$1; }; # like tldr, better than man
+[ -r ~/.ssh/agent/rc ] && . ~/.ssh/agent/rc >/dev/null && [ -S "$SSH_AUTH_SOCK" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null || ssh-agent > ~/.ssh/agent/rc && . ~/.ssh/agent/rc >/dev/null
+
+[ -z "$DISPLAY" ] && DISPLAY=:0
+WLAN="wg0"
+ETH="enp3s0"
+RES=""
+WIN_USER=""
+WIN_PASS=""
+GIT_USER=""
+GIT_EMAIL=""
+SERVERS=""
+
+HISTCONTROL=ignoredups:erasedups
+
+# ssh-agent
+[ -r ~/.ssh/agent/rc ] && . ~/.ssh/agent/rc >/dev/null && [ -S "$SSH_AUTH_SOCK" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null || ssh-agent > ~/.ssh/agent/rc && . ~/.ssh/agent/rc >/dev/null
+
+a() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
+aaa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
+aa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
+
+m() { curl cheat.sh/$1; }; # like tldr, better than man
+
 alias add='git add'
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
-function blah(){ echo "First: $1"; echo "Second: $2"; }; # useful when you need to append something at end of a command... can we make xargs just with a function?
+alias pacman="sudo pacman"
+alias p="sudo pacman -S"
+uu(){ sudo pacman -S $(pacman -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
+u(){ yay -S $(yay -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
+alias o="pacman -Qo "
 alias commit='git commit -am '
 alias dfa="command df"
-alias wha="command which" # so we can override which to show aliases and functions too... TODO check if anything that depends on which gets the shell environment... usually not?
-function which () { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
-alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''       # can refer to self and get the original in an alias
-alias la="command ls --color -la"
-alias ll='command ls -ltr'
-alias L="command ls --color -lSr"
-function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; }; 
-function du() { command du -h --max-depth 2 "${1:-.}" }|sort -h; }; 
-function ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; }; 
+du() { command du -h --max-depth 2 $* | sort -h; };
+which() { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
+wh() { command which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
+alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
+alias la="command ls -la"
+alias L="command ls -lSr"
+ls() { command ls -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
+#function du() { `$which du` -h --max-depth 2 $* }|sort -h; }; # but not in a function
+ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; };
 alias dpa='docker ps -a'
-function dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; }; 
+dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; };
 alias dxxx='docker rm "$\(docker ps -a -q\)"'
 alias egrep='grep --color=auto -E '
 alias fgrep='fgrep --color=auto'
 alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias gam='git commit -am '
-function gp { git commit -am "$*"||git commit -am ...; git push; }; 
-function gpm { git commit -am "$*" && git push; }; 
+gp() { git commit -am "$*"||git commit -am ...; git push; };
+gpm() { git commit -am "$*" && git push; };
 alias gpp='git commit -am ...; git push;'
 alias grep='grep --color=auto'
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
 alias killg=pkill
+alias ll='ls -ltr'
 alias m='egrep -v '\'' /(snap|sys|dev|run|proc|portal|gvfsd)'\'' /proc/mounts'
 alias mkdir='mkdir -p'
 alias modprobe='sudo modprobe'
@@ -62,20 +66,22 @@ alias yum='sudo yum'
 alias pull='git pull'
 alias push='git push'
 alias rmmod='sudo rmmod'
-alias vi='command vim||command vi'
+alias vi='vim'
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
-alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1024x768 -u Administrator -p -'
-function z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; }; 
-# usage popline file [line_count, 1 by default] # ala mosvy@so https://unix.stackexchange.com/questions/474838/how-to-pop-readremove-a-line-of-a-file
-popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")
-type() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
-function send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
-function ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
+alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x960 -u `whoami` -p - -r disk:share=. -r sound:local "
+f() { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
+z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; };
+popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")  # usage popline file [line_count, 1 by default]
+write() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
+send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
+ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 alias procs="sudo ls -l /proc/*/exe|awk '{print \$11}'|sed -E s@^/.+\/@@g|sort|uniq -c|sort -n"
-
 alias docker-runlike="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro assaflavie/runlike "
 function tldr() { curl cheat.sh/$1; };
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
+alias convert="magick "
+function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
+
 
 #end-defaults
