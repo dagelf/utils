@@ -21,6 +21,8 @@ a() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # 
 aaa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
 aa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 
+f() { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
+
 m() { curl cheat.sh/$1; }; # like tldr, better than man
 
 alias add='git add'
@@ -35,13 +37,12 @@ alias o="pacman -Qo "
 alias commit='git commit -am '
 alias dfa="command df"
 du() { command du -h --max-depth 2 $* | sort -h; };
-which() { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto "$1"; echo `set|awk /"^$1"/,/\^}/`; };
-wh() { command which $1 --tty-only --read-alias --show-dot --show-tilde || alias | grep --color=auto "$1"; set|awk /"^$1"/,/\^}/; };
+which() { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto ^"$1"; type -a "$1" };
+alias wh=which
 alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias la="command ls -la"
 alias L="command ls -lSr"
 ls() { command ls -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
-#function du() { `$which du` -h --max-depth 2 $* }|sort -h; }; # but not in a function
 ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; };
 alias dpa='docker ps -a'
 dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; };
@@ -82,6 +83,7 @@ function tldr() { curl cheat.sh/$1; };
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
 alias convert="magick "
 function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
-
+alias awake='systemd-inhibit --what=idle --why="Keeping system awake" sleep infinity'
+alias caffeinate=awake
 
 #end-defaults
