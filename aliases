@@ -83,7 +83,7 @@ function tldr() { curl cheat.sh/$1; };
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
 alias convert="magick "
 function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
-alias awake='systemd-inhibit --what=idle --why="Keeping system awake" sleep infinity'
+alias awake='systemd-inhibit --what=sleep --why="Keeping system awake" sleep infinity'
 alias caffeinate=awake
 
 #end-defaults
