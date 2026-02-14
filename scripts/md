@@ -1,0 +1,7 @@
+t=$(mktemp); echo '<style>
+  html, body {
+    background: #000;
+    color: #fff;
+  }
+</style>
+' >> $t; markdown < $1 >> $t; firefox $t

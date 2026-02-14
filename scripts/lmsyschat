@@ -1,0 +1,231 @@
+MotionNotify 1929 418
+ButtonPress 1
+Delay 89
+ButtonRelease 1
+Delay 1287
+KeyStrPress Up
+KeyStrRelease Up
+Delay 1271
+KeyStrPress Return
+KeyStrRelease Return
+Delay 3538
+MotionNotify 2698 262
+ButtonPress 1
+Delay 81
+ButtonRelease 1
+ButtonPress 1
+Delay 875
+ButtonRelease 1
+ButtonPress 1
+Delay 186
+ButtonRelease 1
+Delay 535
+KeyStrPress Control_L
+Delay 232
+KeyStrPress a
+Delay 20
+KeyStrRelease a
+Delay 1021
+KeyStrPress c
+Delay 20
+KeyStrRelease c
+KeyStrRelease Control_L
+Delay 2041
+MotionNotify 1810 1068
+ButtonPress 1
+Delay 81
+ButtonRelease 1
+Delay 639
+KeyStrPress Control_L
+Delay 609
+KeyStrPress v
+KeyStrRelease v
+KeyStrRelease Control_L
+Delay 1910
+MotionNotify 2280 1087
+ButtonPress 1
+Delay 73
+ButtonRelease 1
+MotionNotify 1755 614
+Delay 65000
+KeyStrPress Prior
+KeyStrRelease Prior
+ButtonPress 1
+Delay 883
+ButtonRelease 1
+Delay 473
+KeyStrPress Prior
+Delay 155
+KeyStrPress Prior
+Delay 18
+KeyStrPress Prior
+KeyStrRelease Prior
+Delay 414
+KeyStrPress Prior
+KeyStrRelease Prior
+MotionNotify 1754 614
+Delay 539
+KeyStrPress Prior
+KeyStrRelease Prior
+MotionNotify 1730 657
+Delay 686
+KeyStrPress Prior
+KeyStrRelease Prior
+Delay 419
+KeyStrPress Prior
+KeyStrRelease Prior
+Delay 396
+KeyStrPress Prior
+KeyStrRelease Prior
+MotionNotify 1729 657
+Delay 289
+KeyStrPress Prior
+MotionNotify 1729 657
+KeyStrRelease Prior
+Delay 218
+KeyStrPress Prior
+KeyStrRelease Prior
+MotionNotify 1728 657
+Delay 249
+KeyStrPress Prior
+MotionNotify 1727 658
+KeyStrRelease Prior
+MotionNotify 1722 662
+Delay 201
+KeyStrPress Prior
+MotionNotify 1720 667
+KeyStrRelease Prior
+MotionNotify 1719 667
+Delay 205
+KeyStrPress Prior
+KeyStrRelease Prior
+ButtonPress 1
+MotionNotify 1719 668
+MotionNotify 1719 669
+MotionNotify 1719 669
+MotionNotify 1720 669
+MotionNotify 1720 670
+MotionNotify 1721 670
+MotionNotify 1722 671
+MotionNotify 1724 672
+MotionNotify 1725 673
+MotionNotify 1726 676
+MotionNotify 1730 677
+MotionNotify 1733 679
+MotionNotify 1735 682
+MotionNotify 1738 684
+MotionNotify 1740 686
+MotionNotify 1741 687
+MotionNotify 1744 688
+MotionNotify 1745 688
+MotionNotify 1746 689
+MotionNotify 1747 689
+MotionNotify 1747 690
+MotionNotify 1748 690
+MotionNotify 1749 690
+MotionNotify 1749 691
+MotionNotify 1750 691
+MotionNotify 1750 692
+MotionNotify 1750 692
+MotionNotify 1751 692
+MotionNotify 1752 692
+MotionNotify 1753 693
+MotionNotify 1754 693
+MotionNotify 1754 694
+MotionNotify 1754 694
+MotionNotify 1754 695
+MotionNotify 1755 695
+MotionNotify 1756 696
+MotionNotify 1757 697
+MotionNotify 1758 698
+MotionNotify 1759 698
+MotionNotify 1760 699
+MotionNotify 1761 699
+MotionNotify 1762 700
+MotionNotify 1763 701
+MotionNotify 1764 702
+MotionNotify 1766 703
+MotionNotify 1767 704
+MotionNotify 1768 705
+MotionNotify 1769 705
+MotionNotify 1770 706
+MotionNotify 1771 707
+MotionNotify 1772 708
+MotionNotify 1773 709
+MotionNotify 1774 709
+Delay 2030
+KeyStrPress Shift_R
+Delay 393
+KeyStrPress Next
+KeyStrRelease Next
+Delay 222
+KeyStrPress Next
+KeyStrRelease Next
+Delay 188
+KeyStrPress Next
+KeyStrRelease Next
+Delay 175
+KeyStrPress Next
+KeyStrRelease Next
+Delay 174
+KeyStrPress Next
+KeyStrRelease Next
+Delay 185
+KeyStrPress Next
+KeyStrRelease Next
+Delay 164
+KeyStrPress Next
+KeyStrRelease Next
+Delay 168
+KeyStrPress Next
+KeyStrRelease Next
+Delay 162
+KeyStrPress Next
+KeyStrRelease Next
+Delay 185
+KeyStrPress Next
+KeyStrRelease Next
+Delay 154
+KeyStrPress Next
+KeyStrRelease Next
+KeyStrRelease Shift_R
+Delay 1341
+KeyStrPress Control_L
+KeyStrRelease Control_L
+Delay 2407
+ButtonRelease 1
+Delay 287
+KeyStrPress Control_L
+MotionNotify 1775 712
+Delay 711
+KeyStrPress c
+Delay 155
+KeyStrPress c
+KeyStrRelease c
+KeyStrRelease Control_L
+Delay 1900
+MotionNotify 1234 831
+ButtonPress 1
+Delay 89
+ButtonRelease 1
+Delay 1011
+KeyStrPress minus
+KeyStrRelease minus
+Delay 165
+KeyStrPress minus
+KeyStrRelease minus
+Delay 179
+KeyStrPress minus
+KeyStrRelease minus
+Delay 463
+KeyStrPress Return
+KeyStrRelease Return
+Delay 307
+KeyStrPress Control_L
+Delay 22
+KeyStrPress Shift_L
+Delay 850
+KeyStrPress v
+KeyStrRelease v
+KeyStrRelease Control_L
+KeyStrRelease Shift_L

@@ -1,0 +1,6 @@
+echo -n Paste github token:\  
+read GITHUB_TOKEN
+REPO_NAME=$(basename "$PWD") 
+CLONE_URL=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user/repos -d "{\"name\":\"$REPO_NAME\"}" | jq -r .clone_url | sed s@.git@@)
+git remote add origin "$CLONE_URL"
+git push --set-upstream origin master

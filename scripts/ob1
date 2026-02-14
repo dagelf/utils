@@ -1,0 +1,14 @@
+#!/bin/sh
+# Run obfuscated commands. Eventual goal is to be able to run a command with a built in password that can't be extracted... or pbkd at least
+# at this point, the password is easily extracted of course, by just changing the echo command below
+# KEY=password ob1 [[line] args]# runs encrypted command - todo: find a portable way to use kernel key and/or secure hardware element, from terminal
+# example: KEY=password ./ob1 2
+# to add more obfuscated commands: 
+#  echo "uptime"|openssl aes-256-cbc -pbkdf2 -a -k password >> ob # uptime = command, password = password
+L=$1; [ -z "$L" ] && L=1
+shift
+F=13 # line in this file with first command
+CMD=`head -$(($F+$L)) $0|tail -1` 
+echo `echo "$CMD"|openssl aes-256-cbc -pbkdf2 -a -d -salt -k $KEY` $*|sh
+exit
+U2FsdGVkX1/5GuINy++trFd5IuMAdgnw7YRrbwD1GkM=

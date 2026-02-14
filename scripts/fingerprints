@@ -1,0 +1,1 @@
+for a in /etc/ssh/*.pub ; do ssh-keygen -l -f $a; done

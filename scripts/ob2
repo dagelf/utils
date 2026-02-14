@@ -1,0 +1,22 @@
+#!/bin/sh
+# Securely run obfuscated commands using kernel keyring for password storage.
+# Usage: ./ob2 [command number] [args]
+# Example: ./ob2 1
+# To add commands: echo "uptime" | openssl aes-256-cbc -pbkdf2 -a >> ob2
+# Check if keyring key exists, else create it
+KEY_NAME="obfuscated_cmd_key"
+KEY_ID=$(keyctl search @u user "$KEY_NAME" 2>/dev/null)
+if [ -z "$KEY_ID" ]; then
+    read -sp "Enter encryption password: " PASS
+    echo
+    keyctl add user "$KEY_NAME" "$PASS" @u >/dev/null
+fi
+L=$1
+[ -z "$L" ] && L=1
+shift
+F=22
+CMD=$(head -$(($F+$L)) "$0" | tail -1)
+PASS=$(keyctl pipe $(keyctl search @u user "$KEY_NAME"))
+echo $(echo "$CMD" | openssl aes-256-cbc -pbkdf2 -a -d -salt -k "$PASS") "$@" | sh
+exit
+U2FsdGVkX1/5GuINy++trFd5IuMAdgnw7YRrbwD1GkM=
