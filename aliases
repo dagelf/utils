@@ -42,7 +42,6 @@ alias wh=which
 alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
 alias la="command ls -la"
 alias L="command ls -lSr"
-ls() { command ls -lhtr --color $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; # TODO override if opts given
 ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; };
 alias dpa='docker ps -a'
 dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; };
