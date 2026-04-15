@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  exec sudo "$0" "$@"
+fi
+ 
+set -euo pipefail
+
+set_kv() {
+  local file="$1" key="$2" value="$3"
+
+  if grep -Eq "^[[:space:]]*#?[[:space:]]*${key}[[:space:]]+" "$file"; then
+    sed -Ei "s|^[[:space:]]*#?[[:space:]]*${key}[[:space:]]+.*|${key} ${value}|" "$file"
+  elif grep -Eq "^[[:space:]]*#?[[:space:]]*${key}=" "$file"; then
+    sed -Ei "s|^[[:space:]]*#?[[:space:]]*${key}=.*|${key}=${value}|" "$file"
+  else
+    printf '%s %s\n' "$key" "$value" >> "$file"
+  fi
+}
+
+set_kv /etc/login.defs UMASK 007
+set_kv /etc/login.defs HOME_MODE 2770
+set_kv /etc/adduser.conf DIR_MODE 2770
+
+for home in /home/*; do
+  [ -d "$home" ] || continue
+
+  user=$(basename "$home")
+
+  if id "$user" >/dev/null 2>&1; then
+    chown "$user:$user" "$home"
+    chmod 2770 "$home"
+  fi
+done
