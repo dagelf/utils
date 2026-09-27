@@ -1,0 +1,1 @@
+perl -MPOSIX=strftime -pe 'BEGIN{$|=1; $b=time()-(split/\s+/,`cat /proc/uptime`)[0]} s/^\[\s*(\d+)\.(\d+)\]/"[".strftime("%Y-%m-%d %H:%M:%S",localtime($b+$1)).".$2]"/e'
