@@ -1,88 +1,145 @@
-#defaults
+# Sourced from ~/.bashrc by install.sh. Machine-specific vars (SERVERS, RES, WIN_USER, WIN_PASS) go in ~/.bashrc before the hook.
+U="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+case ":$PATH:" in *":$U/scripts:"*) ;; *) PATH="$U/scripts:$PATH" ;; esac
 
-[ -r ~/.ssh/agent/rc ] && . ~/.ssh/agent/rc >/dev/null && [ -S "$SSH_AUTH_SOCK" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null || ssh-agent > ~/.ssh/agent/rc && . ~/.ssh/agent/rc >/dev/null
-
-[ -z "$DISPLAY" ] && DISPLAY=:0
-WLAN="wg0"
-ETH="enp3s0"
-RES=""
-WIN_USER=""
-WIN_PASS=""
-GIT_USER=""
-GIT_EMAIL=""
-SERVERS=""
-
+[ -z "$DISPLAY" ] && export DISPLAY=:0
 HISTCONTROL=ignoredups:erasedups
 
-# ssh-agent
-[ -r ~/.ssh/agent/rc ] && . ~/.ssh/agent/rc >/dev/null && [ -S "$SSH_AUTH_SOCK" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null || ssh-agent > ~/.ssh/agent/rc && . ~/.ssh/agent/rc >/dev/null
+# ssh-agent: reuse a running one, else start one
+mkdir -p ~/.ssh/agent
+[ -r ~/.ssh/agent/rc ] && . ~/.ssh/agent/rc >/dev/null && [ -S "$SSH_AUTH_SOCK" ] && kill -0 "$SSH_AGENT_PID" 2>/dev/null || { ssh-agent > ~/.ssh/agent/rc && . ~/.ssh/agent/rc >/dev/null; }
 
-a() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $servers in parallell and sort output
-aaa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
-aa() {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
+function a () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wait;)};  # run a command on all $SERVERS in parallel and sort output
+function aaa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
+function aa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 
-f() { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
+function f () { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
+function tldr () { curl cheat.sh/$1; }; # like tldr, better than man
 
-m() { curl cheat.sh/$1; }; # like tldr, better than man
-
-alias add='git add'
+# packages
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
 alias apt='sudo apt'
 alias apt-get='sudo apt-get'
-alias pacman="sudo pacman"
-alias p="sudo pacman -S"
-uu(){ sudo pacman -S $(pacman -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
-u(){ yay -S $(yay -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
-alias o="pacman -Qo "
+alias systemctl='sudo systemctl'
+alias mount='sudo mount'
+alias blkid='sudo blkid'
+alias nerdctl='sudo nerdctl'
+alias s='doas'
+alias please='doas'
+alias yum='sudo yum'
+alias pacman='sudo pacman'
+alias o='pacman -Qo '
+function uu (){ sudo pacman -S $(pacman -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
+function u (){ yay -S $(yay -Ss $*|sed 'N;s/\n/ \# /'|fzf --tac -1 -0|awk '{print $1}' ); }
+
+# git
+alias add='git add'
 alias commit='git commit -am '
-alias dfa="command df"
-du() { command du -h --max-depth 2 $* | sort -h; };
-which() { command which $1 --tty-only --show-dot --show-tilde; alias | grep --color=auto ^"$1"; type -a "$1" };
-alias wh=which
-alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
-alias la="command ls -la"
-alias L="command ls -lSr"
-ds(){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; };
-alias dpa='docker ps -a'
-dr(){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; };
-alias dxxx='docker rm "$\(docker ps -a -q\)"'
-alias egrep='grep --color=auto -E '
-alias fgrep='fgrep --color=auto'
-alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias gam='git commit -am '
-gp() { git commit -am "$*"||git commit -am ...; git push; };
-gpm() { git commit -am "$*" && git push; };
+function g () { git commit -am "${*:-...}"; git push; };
+function gpm () { git commit -am "$*" && git push; };
 alias gpp='git commit -am ...; git push;'
-alias grep='grep --color=auto'
-alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
-alias iptables='sudo iptables'
-alias killg=pkill
+alias pull='git pull'
+alias gm='git pull'
+alias gf='git fetch && git log -p --stat HEAD..@{u}'
+alias gg='git merge --ff-only --verify-signatures'
+alias push='git push'
+
+# files & system
+function ls () { [[ "$1" == -* ]] && command ls "$@" || { command ls --color -lhtr "$@" | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
 alias ll='ls -ltr'
+alias la='command ls -la'
+alias L='command ls -lSr'
+function du () { command du -h --max-depth 2 "$@" | sort -h; };
+alias df='command df -h|egrep -v '\''^(/dev/loop|tmpfs|udev)'\'''
+alias dfa='command df'
+alias files='find|cut -d\/ -f2|sort|uniq -c|sort -n'
 alias m='egrep -v '\'' /(snap|sys|dev|run|proc|portal|gvfsd)'\'' /proc/mounts'
 alias mkdir='mkdir -p'
-alias modprobe='sudo modprobe'
-alias pacman='sudo pacman'
-alias yum='sudo yum'
-alias pull='git pull'
-alias push='git push'
-alias rmmod='sudo rmmod'
-alias vi='vim'
-alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
-alias rd="rdesktop -D -K -z -r clipboard:CLIPBOARD -g 1280x960 -u `whoami` -p - -r disk:share=. -r sound:local "
-f() { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
-z(){ sed /^\s*$/d $*|egrep -v "^[ \t]*[;#]"; };
-popline()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")  # usage popline file [line_count, 1 by default]
-write() {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
-send() { ( h=$1; shift; p=$1; shift; $* >& /dev/tcp/$h/$p 0>&1) }
-ncsend() { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | $* >&3 3>&-) 3>&1 | :; }
-alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 alias procs="sudo ls -l /proc/*/exe|awk '{print \$11}'|sed -E s@^/.+\/@@g|sort|uniq -c|sort -n"
-alias docker-runlike="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro assaflavie/runlike "
-function tldr() { curl cheat.sh/$1; };
-alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage"
-alias convert="magick "
-function ls() { [[ "$1" == -\* ]] && command ls $* || { command ls --color -lhtr $* | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
+alias killg=pkill
+alias dmesg='dmesg -T'
+function which () { (alias; declare -f) | command which --tty-only --read-alias --read-functions --show-tilde --show-dot "$@" 2>/dev/null || type -a "$@"; }  # shows aliases + functions too
+alias wh=which
+alias grep='grep --color=auto'
+alias egrep='grep --color=auto -E '
+alias fgrep='grep --color=auto -F'
+alias vi='vim'
+alias convert='magick '
 alias awake='systemd-inhibit --what=sleep --why="Keeping system awake" sleep infinity'
 alias caffeinate=awake
+function z (){ sed '/^\s*$/d' "$@"|egrep -v "^[ \t]*[;#]"; };  # strip blank lines and comments
+function popline ()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")  # popline file [line_count]
 
-#end-defaults
+# network
+alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
+alias iptables='sudo iptables'
+alias modprobe='sudo modprobe'
+alias rmmod='sudo rmmod'
+function send () { ( h=$1; shift; p=$1; shift; "$@" >& /dev/tcp/$h/$p 0>&1) }
+function ncsend () { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | "$@" >&3 3>&-) 3>&1 | :; }
+
+# desktop
+alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=. -r sound:local'
+alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
+alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
+function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
+
+# docker
+alias dpa='docker ps -a'
+alias dxxx='docker rm $(docker ps -a -q)'
+alias docker-runlike='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro assaflavie/runlike '
+alias dfimage='docker run -v /var/run/docker.sock:/var/run/docker.sock --rm ghcr.io/laniksj/dfimage'
+function ds (){ z=`mktemp -u|cut -d. -f2`; docker commit $1 i$z; docker run -ti --name=$z --entrypoint=$2 i$z; docker rm $z; docker rmi i$z; };
+function dr (){ z=`mktemp -u|cut -d. -f2`;docker exec $1 touch /$z;sudo find /var/lib/docker/|grep $z|sed s@$z@@;docker exec $1 rm /$z; };
+
+# dev & tools
+alias n='watch -n4 -d nvidia-smi'
+function cm () { cmake -B ${*:-build} && cmake --build ${1:-build} -j$(nproc); }
+alias codex='codex --no-daemon --no-alt-screen'
+alias aichat='aichat --role default'
+alias ,='aichat -e'
+alias chromium='chromium --disable-features=MediaRouter --disable-background-networking --disable-component-update'
+alias xonotic='vblank_mode=0 __GL_SYNC_TO_VBLANK=0 xonotic-sdl '
+function claudels (){ command ls -t ~/.claude/projects/*/*.jsonl | while read -r f; do printf '%s\t%s\t%s\n' "$(basename "$f" .jsonl)" "$(grep -m1 -o '"cwd":"[^"]*' "$f" | cut -d'"' -f4)" "$(grep -m1 -o '"role":"user","content":"[^"]*' "$f" | sed 's/.*"//' | cut -c1-90)"; done; }
+
+# serve current dir: hostthis1 = open, hostthis = basic auth (user admin)
+alias caddy-server='caddy file-server --listen :2015 --root . --browse'
+function hostthis1 () { caddy file-server --root . --browse --listen ":${1:-2080}"; }
+function hostthis () {
+  local p h; read -rsp "Password for admin: " p; echo
+  h="$(caddy hash-password --plaintext "$p")" || return
+  caddy run --adapter caddyfile --config <(printf ':%s {\n\troot * %s\n\tbasic_auth * {\n\t\tadmin %s\n\t}\n\tfile_server browse\n}\n' "${1:-2080}" "$PWD" "$h")
+}
+
+# small tools 
+function 1l () { echo $("$@"); }                                   # output on one line
+alias dmy='date +%y%m%d%-H%M%S'
+alias march='gcc -march=native -Q --help=target|grep march'
+alias pty="python3 -c 'import pty; pty.spawn(\"/bin/bash\")'"
+function glibc () { find /usr/lib -name libc.so.6 -exec strings {} \; | grep GLIBC | sort -t. -k2 -n; }
+function fingerprints () { for a in /etc/ssh/*.pub; do ssh-keygen -l -f "$a"; done; }
+function pythons () { locate -r '/....-packages/' || find / -type d -regex '.*/....-packages/' 2>/dev/null | grep -v '/pkgs/' | sed 's|/....-packages/.*$||' | uniq -c | sort -n; }  # where python packages live
+function findlibwith () { [ -e /tmp/findlibs ] || find /lib /usr/lib /usr/local/lib -type f -name '*.a' -printf '%p:' -exec sh -c 'echo $(objdump -x "$1")' _ {} \; 2>/dev/null > /tmp/findlibs; grep "$1" /tmp/findlibs | cut -d: -f1; }
+function matchn () { [ -z "$3" ] && { echo "matchn file [match n]... # output line n after match"; return 1; }; local f=$1 s=; shift; while [ -n "$2" ]; do s="$s/$1/{c=$2};"; shift 2; done; awk 'c&&!--c;'"$s" "$f"; }
+function waitall () { [ -z "$1" ] && { echo "waitall string # wait until all current processes matching string exit"; return 1; }; for a in $(pgrep -f "$1"); do while [ -e /proc/$a ]; do sleep 1; done; done; }
+function mrec () { cnee --record -o /tmp/events.xnr --mouse --events-to-record 50000 --time 2; }
+function mplay () { sleep 1.9; while sleep 0.1; do cnee --replay -f /tmp/events.xnr --time 0; done; }
+function md () { local t=$(mktemp --suffix=.html); { echo '<style>html,body{background:#000;color:#fff}</style>'; markdown < "$1"; } > "$t"; firefox "$t"; }  # dark markdown viewer
+function rbench () { local d=${1:-/temp} len=${2:-100} s a; for s in 1024 512 256 128 64 16 8 4 1; do a=$((s*1024)); echo -ne "${s}k\t"; sync; echo 3|sudo tee /proc/sys/vm/drop_caches >/dev/null; nice -10 sudo dd if=$d of=/dev/null bs=$a count=$((len*1024*1024/a)) 2>&1|grep -v records; done; }  # read benchmark: rbench [dev] [MB]
+function smartlog () { local d=$(date +%s) a s; sudo mkdir -p /var/lib/smart; sudo chmod a+rw /var/lib/smart; for a in $(cd /dev; ls sd?); do sudo smartctl --all /dev/$a > /tmp/$a-tmp; s=$(grep 'Serial N' /tmp/$a-tmp|cut -d: -f2|tr -d ' '); mv /tmp/$a-tmp /var/lib/smart/$s-$d; done; }
+function clean () { sudo killall bc ping rdesktop; sudo ps -aelf|grep bash|grep poll_s|sudo awk '{system("kill "$4)}'; }  # kill idle bash prompts and common clutter
+function ww () { for a in $(sudo iwlist ${WLAN:-wlan0} scanning $1|egrep "(Qua|Enc|ESSID)"|sed s@=@\ @g); do echo -n "$a "; echo $a|grep -q Qua&&echo; done|sed s@Quality@@g|sort -n -k5; }
+function dxr () { [ -z "$2" ] && { echo "dxr image command # docker run with X"; return 1; }; docker run --init -v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 -e DISPLAY=$DISPLAY "$@"; }
+function dip () { docker inspect $(docker ps -aq) | jq -r '["IP", "CONTAINER ID", "NAME", "PORTS"], (.[] | [([.NetworkSettings.Networks[]?.IPAddress] | map(select(. != "")) | unique | join(",")), .Id[0:12], (.Name | ltrimstr("/")), ([((.NetworkSettings.Ports // {}) | to_entries[]) | .key as $port | if (.value | length) > 0 then .value[] | "\(.HostIp):\(.HostPort)->\($port)" else $port end] | join(", "))] | map(if . == "" then "-" else . end)) | @tsv' | column -t -s "$(printf '\t')"; }  # container IPs, names, ports
+function sk () { [ -z "$1" ] && { echo "sk host [ssh options] # add your ssh key to host"; return 1; }; [ -f ~/.ssh/id_rsa ] || ssh-keygen; local K=$(cat ~/.ssh/id_rsa.pub); ssh "$@" "mkdir -p .ssh;grep -q \"$K\" .ssh/authorized_keys||echo \"$K\" >> .ssh/authorized_keys;chmod 600 .ssh/authorized_keys" >/dev/null 2>&1; }
+function github-new () { local T U; read -rsp "Paste github token: " T; echo; U=$(curl -s -X POST -H "Authorization: token $T" https://api.github.com/user/repos -d "{\"name\":\"${PWD##*/}\"}" | jq -r .clone_url) && git remote add origin "$U" && git push --set-upstream origin main; }
+function nct () { local t=$(mktemp -u); mkfifo $t; cat $t | /bin/sh -i 2>&1 | nc -l ${1:-4444} > $t; rm $t; }  # shell on a port
+function nctty () { reset; export SHELL=/bin/bash TERM=xterm; stty rows 25 columns 80; }
+
+# LLM / API tools: key files come from env vars (set in ~/.bashrc), files are root-readable
+alias claudeapi='ANTHROPIC_API_KEY="$(sudo cat "$OPENROUTER_KEY_FILE")" ANTHROPIC_BASE_URL="https://openrouter.ai/api" command claude'
+alias clauded='ANTHROPIC_API_KEY="$(sudo cat "$OPENROUTER_KEY_FILE")" ANTHROPIC_BASE_URL="https://openrouter.ai/api" ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek/deepseek-v4-pro ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek/deepseek-v4-flash ANTHROPIC_DEFAULT_HAIKU_MODEL=openai/gpt-oss-120b command claude'
+alias clauden='ANTHROPIC_API_KEY="$(sudo cat "$NVIDIA_KEY_FILE")" ANTHROPIC_BASE_URL="$(cat "$NVIDIA_BASEURL_FILE")" ANTHROPIC_DEFAULT_OPUS_MODEL=z-ai/glm-5.1 ANTHROPIC_DEFAULT_SONNET_MODEL=minimaxai/minimax-m2.7 ANTHROPIC_DEFAULT_HAIKU_MODEL=openai/gpt-oss-20b command claude'
+unalias hf 2>/dev/null
+function hf () { HF_TOKEN="$(sudo cat "$HF_KEY_FILE")" || return; export HF_TOKEN; "${HF_BIN:-hf}" "$@"; }

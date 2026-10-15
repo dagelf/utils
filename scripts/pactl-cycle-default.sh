@@ -1,3 +1,4 @@
+#!/bin/sh
 currentline=$(pactl list short sinks | grep -n "$(pactl get-default-sink)" | cut -d: -f 1)
 lastline=$(pactl list short sinks | wc -l)
 nextline=$(($currentline % $lastline + 1))

@@ -1,53 +1,27 @@
-# General Linux CLI utilities, defaults and helper functions
+# dagelf utils
 
-Installation:
+Linux CLI helpers: bash aliases plus small scripts. Read anything before you run it.
 
-    git clone --depth 1 https://github.com/dagelf/utils dagelf-utils || (wget https://github.com/dagelf/utils/archive/master.zip -O dagelf-utils.zip && unzip dagelf-utils.zip && mv utils-master dagelf-utils) || (curl https://github.com/dagelf/utils/archive/master.zip > dagelf-utils.zip && unzip dagelf-utils && mv utils-master dagelf-utils)
-    dagelf-utils/install.sh
+    git clone --depth 1 https://github.com/dagelf/utils && utils/install.sh --system   # omit --system to keep your screen, ssh defaults unchanged
+    utils/install.sh --uninstall                                                       # teardown
 
-Notes:
+The repo is sourced where it sits, so `git pull` (`gm`) updates it live. To review first: `gf` fetches and shows the incoming diff, then `gg` merges it (fast-forward only, signed commits only). Put machine-specific vars (`SERVERS`, `RES`, `WIN_USER`, `WIN_PASS`) in `~/.bashrc` above the hook line.
 
-Don't run scripts from the internet without making very sure you check what they will do and that you understand them!
+Some highlights:
 
-This repository is me sharing all my helper functions, defaults and utilities in one place, and also me finding my feet with a comfortable sharing workflow.
+- `a cmd` runs a command on every host in `$SERVERS` in parallel, output prefixed and sorted (`aa` in series, `aaa` unsorted)
+- `ls` groups files by date with separators; `du` sorts by size; `df` hides loop/tmpfs noise
+- `f [query]` jumps to a window by fuzzy title; `u`/`uu` fuzzy-search and install packages (yay/pacman)
+- `g [msg]` commits all and pushes (msg defaults to `...`); `gf` / `gg` review then merge upstream
+- `tldr cmd` quick usage examples from cheat.sh; `z file` strips blank lines and comments
+- `send host port cmd` pipes a command's output to a TCP port, no netcat needed
+- `ds container shell` snapshots a container and opens a shell in the copy; `dip` lists container IPs, names and ports
+- `hostthis [port]` serves the current dir over HTTP with caddy, behind a password (`hostthis1` without)
+- `sk host` copies your ssh key to a host, generating one if needed
+- `popline file [n]` removes and prints the last n lines; `waitall string` waits for matching processes to exit
+- `dockertags image [filter]` lists Docker Hub tags
+- `git-remote-add host:path` sets up a push-to-deploy remote
+- `checklimits.sh` shows system limits against sane defaults
+- `macs` looks up MAC vendors; `apt-history.py` and `dpkg-l-by-date.py` show what was installed when
 
-Some utilities are curated, some created, some vetted, some not. I have yet to work out a way to tag- and keep them up to date. Some are made redundant by upgrades to the tools they manage... maybe someday most of them will... until then, this is my band-aid. Contributions welcome. 
-
-# Scripts
-
-## dockertags  
-*List all tags for a Docker image on docker hub.*
-
-
-List all tags for *ubuntu*:
- 
-    dockertags ubuntu
-
-List all *php* tags containing *apache*:
- 
-    dockertags php apache
-
-List all *mariadb* tags in one line:
- 
-    echo `dockertags mariadb`
-
->dependencies: *wget, awk*  
-*source:* [stackoverflow: How do you list all tags for a Docker image on a remote registry?](https://stackoverflow.com/questions/28320134/how-to-list-all-tags-for-a-docker-image-on-a-remote-registry)
-
-## github-*
-*Github helper utilities*
-
-Changes current git repo source url from ssh to https
-
-    github-tohttps
-
-Changes current git repo source url from https to ssh
-
-    github-tossh
-
-dependency: *git*  
-*source:* [icyflame gist](https://gist.github.com/icyflame/532edee5422baeabac56d111f642bd73)
-
-# Defaults
-
-coming soon(TM): ssh_config, .screenrc
+See `AGENTS.md` for the layout and how to merge older copies.

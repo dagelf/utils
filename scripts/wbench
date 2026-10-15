@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ -z $1 ]; then d=/temp; else d=$1; fi
 if [ -z $2 ]; then len=100; else len=$2; fi
 xx="oflag=direct"

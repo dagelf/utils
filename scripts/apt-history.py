@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import gzip
 from glob import glob
 from datetime import datetime

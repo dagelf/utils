@@ -3,58 +3,28 @@
 if [ $# -lt 1 ]; then
     cat << HELP
 
-dockertags  --  list all tags for a Docker image on a remote registry.
+dockertags  --  list all tags for a Docker image on Docker Hub.
 
-EXAMPLE: 
+EXAMPLE:
     - list all tags for ubuntu:
        dockertags ubuntu
 
     - list all php tags containing apache:
        dockertags php apache
 
-    - list all mariadb tags in one line:
-       echo \$(dockertags mariadb)
-       
-    - Also see:
-       dockerfiles
-
 HELP
     exit 1
 fi
 
 image="$1"
-# For official images, prepend 'library/' if no namespace is provided
-if echo "$image" | grep -q -v '/'; then
-    image="library/$image"
-fi
+# Official images live under library/
+case "$image" in */*) ;; *) image="library/$image" ;; esac
 
-# Fetch tags from Docker Hub v2 API
-url="https://hub.docker.com/v2/repositories/${image}/tags?page_size=10000"
-raw_output=$(curl -s "$url")
-
-# Check if we got any data
-if [ -z "$raw_output" ]; then
-    echo "Error: No response from $url" >&2
-    exit 1
-fi
-
-# Parse the JSON for tag names
-tags=$(echo "$raw_output" | \
-       grep -o '"name":"[^"]*"' | \
-       sed 's/"name":"//' | \
-       sed 's/"//')
-
-# If no tags are found, show raw output for debugging
-if [ -z "$tags" ]; then
-    echo "Error: No tags parsed. Raw API response:" >&2
-    echo "$raw_output" >&2
-    exit 1
-fi
-
-# Filter tags if a second argument is provided
-if [ -n "$2" ]; then
-    tags=$(echo "$tags" | grep "$2")
-fi
-
-echo $(echo "$tags")
-
+# Hub caps page_size at 100 and anonymous paging at 10 pages (1000 tags),
+# so filter server-side with name= and follow "next" until it's null
+url="https://hub.docker.com/v2/repositories/${image}/tags?page_size=100&name=${2:-}"
+while [ -n "$url" ]; do
+    page=$(curl -fsS "$url") || { echo "dockertags: stopped at $url (404: no such image; 403: past Hub's 1000-tag limit, narrow the filter)" >&2; exit 1; }
+    echo "$page" | grep -o '"name":"[^"]*"' | cut -d'"' -f4
+    url=$(echo "$page" | grep -o '"next":"[^"]*"' | cut -d'"' -f4 | sed 's/\\u0026/\&/g')
+done
