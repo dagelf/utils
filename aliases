@@ -15,6 +15,7 @@ function aa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};       
 
 function f () { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
 function tldr () { curl cheat.sh/$1; }; # like tldr, better than man
+alias cheat=tldr
 
 # packages
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
@@ -37,6 +38,7 @@ alias add='git add'
 alias commit='git commit -am '
 alias gam='git commit -am '
 function g () { git commit -am "${*:-...}"; git push; };
+alias gp=g
 function gpm () { git commit -am "$*" && git push; };
 alias gpp='git commit -am ...; git push;'
 alias pull='git pull'
@@ -68,7 +70,7 @@ alias egrep='grep --color=auto -E '
 alias fgrep='grep --color=auto -F'
 alias vi='vim'
 alias convert='magick '
-alias awake='systemd-inhibit --what=sleep --why="Keeping system awake" sleep infinity'
+alias awake='systemd-inhibit --what=idle:sleep --why="Keeping system awake" sleep infinity'
 alias caffeinate=awake
 function z (){ sed '/^\s*$/d' "$@"|egrep -v "^[ \t]*[;#]"; };  # strip blank lines and comments
 function popline ()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")  # popline file [line_count]
@@ -82,7 +84,7 @@ function send () { ( h=$1; shift; p=$1; shift; "$@" >& /dev/tcp/$h/$p 0>&1) }
 function ncsend () { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | "$@" >&3 3>&-) 3>&1 | :; }
 
 # desktop
-alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=. -r sound:local'
+alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local'
 alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
