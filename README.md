@@ -18,6 +18,8 @@ Some highlights:
 - `ds container shell` snapshots a container and opens a shell in the copy; `dip` lists container IPs, names and ports
 - `hostthis [port]` serves the current dir over HTTP with caddy, behind a password (`hostthis1` without)
 - `sk host` copies your ssh key to a host, generating one if needed
+- `t2h < log` turns `[seconds-since-boot]` stamps into wall-clock times, counting from this machine's last boot (wrong for older boots or other hosts)
+- `ut2h [ts]` turns 10-digit unix timestamps into wall-clock times, in args or piped text
 - `popline file [n]` removes and prints the last n lines; `waitall string` waits for matching processes to exit
 - `dockertags image [filter]` lists Docker Hub tags
 - `git-remote-add host:path` sets up a push-to-deploy remote

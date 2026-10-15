@@ -59,6 +59,8 @@ alias mkdir='mkdir -p'
 alias procs="sudo ls -l /proc/*/exe|awk '{print \$11}'|sed -E s@^/.+\/@@g|sort|uniq -c|sort -n"
 alias killg=pkill
 alias dmesg='dmesg -T'
+function t2h () { perl -MPOSIX=strftime -pe 'BEGIN{$|=1; $b=time()-(split/\s+/,`cat /proc/uptime`)[0]} s/^\[\s*(\d+)\.(\d+)\]/"[".strftime("%Y-%m-%d %H:%M:%S",localtime($b+$1)).".$2]"/e'; }  # [seconds-since-boot] stamps -> wall clock, from this boot only
+function ut2h () { (($#)) && { echo "$*" | ut2h; return; }; perl -MPOSIX=strftime -pe 'BEGIN{$|=1} s/\b\d{10}\b/strftime("%Y-%m-%d %H:%M:%S",localtime $&)/ge'; }  # unix timestamps -> wall clock, in args or piped text
 function which () { (alias; declare -f) | command which --tty-only --read-alias --read-functions --show-tilde --show-dot "$@" 2>/dev/null || type -a "$@"; }  # shows aliases + functions too
 alias wh=which
 alias grep='grep --color=auto'

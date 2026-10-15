@@ -7,7 +7,7 @@ Personal Linux CLI utils. Keep it lean: no build, no deps, no generated files.
 - `scripts/` — tools too long for a one-liner: one executable each, with a shebang, `chmod +x`. Anything that fits on a line goes in `aliases` instead.
 - In `aliases`, define functions as `function name () {...}`. The `function` keyword stops an existing alias of the same name from breaking parsing.
 - `install.sh` — setup and teardown (`--uninstall`, `--system`). Idempotent. System changes are drop-in files only.
-- `snippets` — notes, not executed. `unixtime2human` — pipe anything with unix timestamps through it for wall-clock times.
+- `snippets` — notes, not executed.
 
 The repo is public. Never commit hostnames, IPs, usernames, key paths or anything machine-specific; that stays in `~/.bash_aliases`. Secrets are referenced by env var only (`OPENROUTER_KEY_FILE`, `NVIDIA_KEY_FILE`, `NVIDIA_BASEURL_FILE`, `HF_KEY_FILE`, `HF_BIN`), set in `~/.bashrc`.
 
