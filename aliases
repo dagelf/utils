@@ -84,8 +84,32 @@ function send () { ( h=$1; shift; p=$1; shift; "$@" >& /dev/tcp/$h/$p 0>&1) }
 function ncsend () { h=$1; shift; p=$1; shift; (nc $h $p </dev/fd/3 3>&- | "$@" >&3 3>&-) 3>&1 | :; }
 
 # desktop
-alias rd='rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local'
-alias xtv='xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3'
+# Missing capability: close this shell after a short wait unless any key is pressed.
+# Foreground only; leave the cancelling key queued for the normal shell prompt.
+function idle_exit () {
+  [[ $- == *i* && -t 0 ]] || return 0
+  python3 - "${1:-5}" <<'PY'
+import select
+import sys
+import termios
+
+with open('/dev/tty', 'rb', buffering=0) as tty:
+    original = termios.tcgetattr(tty)
+    watching = termios.tcgetattr(tty)
+    watching[3] &= ~(termios.ICANON | termios.ECHO)
+    try:
+        termios.tcsetattr(tty, termios.TCSANOW, watching)
+        active = bool(select.select([tty], [], [], float(sys.argv[1]))[0])
+    finally:
+        termios.tcsetattr(tty, termios.TCSANOW, original)
+sys.exit(1 if active else 0)
+PY
+  if [[ $? == 0 ]]; then exit; fi
+}
+function launch_and_close () { "$@" & disown "$!"; idle_exit; }
+unalias rd xtv 2>/dev/null
+function rd () { launch_and_close rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@"; }
+function xtv () { launch_and_close xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@"; }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
 
