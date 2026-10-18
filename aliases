@@ -76,6 +76,19 @@ function z (){ sed '/^\s*$/d' "$@"|egrep -v "^[ \t]*[;#]"; };  # strip blank lin
 function popline ()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; truncate -s "-${#l}" "$1"; printf %s "$l")  # popline file [line_count]
 
 # network
+# Terminate TCP listeners on one or more ports: lsofkill 3000 :8080
+function lsofkill () {
+  (($#)) || { echo 'Usage: lsofkill port [port ...]' >&2; return 2; }
+  local port ports= pids status
+  for port in "$@"; do
+    port=${port#:}
+    [[ $port =~ ^[0-9]{1,5}$ ]] && ((10#$port >= 1 && 10#$port <= 65535)) || { echo "Invalid port: $port" >&2; return 2; }
+    ports+=",$port"
+  done
+  pids=$(lsof -nP -t -a -iTCP:"${ports#,}" -sTCP:LISTEN); status=$?
+  ((status <= 1)) || return "$status"
+  [[ -z $pids ]] || kill $pids
+}
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
 alias modprobe='sudo modprobe'
