@@ -15,6 +15,8 @@ Some highlights:
 - `g [msg]` commits all and pushes (msg defaults to `...`); `gf` / `gg` review then merge upstream
 - `tldr cmd` quick usage examples from cheat.sh; `z file` strips blank lines and comments
 - `send host port cmd` pipes a command's output to a TCP port, no netcat needed
+- `lsofkill 3000 :8080` sends SIGTERM to TCP listeners on the given ports
+- `getport [name]` allocates the next free port from 10000; a known name returns its original port. Allocations (including unnamed ones) persist in `${XDG_STATE_HOME:-~/.local/state}/dagelf-utils/ports.sqlite3`. SQLite serializes concurrent allocations; new ports are checked for TCP/UDP use on IPv4/IPv6. This records allocations, but cannot prevent unrelated programs from binding them afterward.
 - `ds container shell` snapshots a container and opens a shell in the copy; `dip` lists container IPs, names and ports
 - `hostthis [port]` serves the current dir over HTTP with caddy, behind a password (`hostthis1` without)
 - `sk host` copies your ssh key to a host, generating one if needed

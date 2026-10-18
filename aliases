@@ -79,13 +79,13 @@ function popline ()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; tr
 # Terminate TCP listeners on one or more ports: lsofkill 3000 :8080
 function lsofkill () {
   (($#)) || { echo 'Usage: lsofkill port [port ...]' >&2; return 2; }
-  local port ports= pids status
+  local port pids status ports=()
   for port in "$@"; do
     port=${port#:}
     [[ $port =~ ^[0-9]{1,5}$ ]] && ((10#$port >= 1 && 10#$port <= 65535)) || { echo "Invalid port: $port" >&2; return 2; }
-    ports+=",$port"
+    ports+=("-iTCP:$port")
   done
-  pids=$(lsof -nP -t -a -iTCP:"${ports#,}" -sTCP:LISTEN); status=$?
+  pids=$(lsof -nP -t -a "${ports[@]}" -sTCP:LISTEN); status=$?
   ((status <= 1)) || return "$status"
   [[ -z $pids ]] || kill $pids
 }
