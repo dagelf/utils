@@ -79,15 +79,95 @@ function popline ()(LC_CTYPE=C; l=`tail -n "${2:-1}" "$1"; echo t`; l=${l%t}; tr
 # Terminate TCP listeners on one or more ports: lsofkill 3000 :8080
 function lsofkill () {
   (($#)) || { echo 'Usage: lsofkill port [port ...]' >&2; return 2; }
-  local port pids status ports=()
+  local port records status pid line ports=()
   for port in "$@"; do
     port=${port#:}
     [[ $port =~ ^[0-9]{1,5}$ ]] && ((10#$port >= 1 && 10#$port <= 65535)) || { echo "Invalid port: $port" >&2; return 2; }
     ports+=("-iTCP:$port")
   done
-  pids=$(lsof -nP -t -a "${ports[@]}" -sTCP:LISTEN); status=$?
+  records=$(lsof -nP -Fpc -a "${ports[@]}" -sTCP:LISTEN); status=$?
   ((status <= 1)) || return "$status"
-  [[ -z $pids ]] || kill $pids
+  status=0
+  while IFS= read -r line; do
+    case $line in
+      p*) pid=${line#p} ;;
+      c*) if kill "$pid"; then printf 'SIGTERM %s %s\n' "$pid" "${line#c}"; else status=1; fi ;;
+    esac
+  done <<< "$records"
+  return "$status"
+}
+# Missing capability: resolve registered tunnel names without allocating on lookup.
+function __tunnel_port () { [[ $1 == *:* ]] || return 1; getport --lookup "$1"; }
+function __tunnel_target () {
+  local port status
+  if port=$(__tunnel_port "$2"); then printf '127.0.0.1%s%s\n' "$1" "$port"
+  else status=$?; ((status == 1)) || return "$status"; printf '%s\n' "$2"; fi
+}
+
+# Shared with the numeric-host shortcut in the user's profile.
+function __lan_ssh_option_takes_arg () {
+  case "$1" in
+    -B|-b|-c|-D|-E|-e|-F|-I|-i|-J|-L|-l|-m|-O|-o|-p|-P|-Q|-R|-S|-W|-w) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+function ssh () {
+  local -a args=("$@") tunnel_opts=()
+  local i=0 n=${#args[@]} target user= port status title
+  while ((i < n)); do
+    if [[ ${args[i]} == -- ]]; then ((i++)); break; fi
+    [[ ${args[i]} == -* ]] || break
+    if __lan_ssh_option_takes_arg "${args[i]}" && ((i + 1 < n)); then ((i += 2)); else ((i++)); fi
+  done
+  if ((i < n)); then
+    target=${args[i]}
+    [[ $target == *@* ]] && user=${target%@*}@
+    if port=$(__tunnel_port "${target##*@}"); then
+      args[i]="${user}127.0.0.1"
+      tunnel_opts=(-p "$port" -o "HostKeyAlias=${target##*@}")
+    else
+      status=$?; ((status == 1)) || return "$status"
+      if declare -F __lan_resolve_target_token >/dev/null; then
+        args[i]="$(__lan_resolve_target_token "$target")" || return
+      fi
+    fi
+  fi
+  if [[ -z ${SSH_CLIENT-} ]] && declare -F __terminal_title >/dev/null; then
+    printf -v title '%q ' ssh "$@"
+    __terminal_title "${USER}@${HOSTNAME}: ${PWD} - ${title% }"
+  fi
+  command ssh "${tunnel_opts[@]}" "${args[@]}"
+}
+
+# Keep forwards in this foreground SSH connection; its exit closes all listeners.
+function sshh () {
+  (($# >= 2)) || { echo 'Usage: sshh host [name:][target:]port ...' >&2; return 2; }
+  local host=$1 spec name target port key i=0
+  local -a names=() targets=() ports=() forwards=()
+  local -A seen=()
+  [[ $host =~ ^([[:alnum:]_.-]+@)?[[:alnum:]_][[:alnum:]_.-]*$ ]] || { echo "Invalid SSH host: $host" >&2; return 2; }
+  shift
+  for spec in "$@"; do
+    ((i+=1)); name=; target=127.0.0.1
+    if [[ $spec =~ ^([[:alnum:]_.-]*):(\[[[:xdigit:]:.]+\]|[[:alnum:]_.-]*):([0-9]{1,5})$ ]]; then
+      name=${BASH_REMATCH[1]}; target=${BASH_REMATCH[2]:-127.0.0.1}; port=${BASH_REMATCH[3]}
+    elif [[ $spec =~ ^([[:alnum:]_.-]+):([0-9]{1,5})$ ]]; then
+      name=${BASH_REMATCH[1]}; port=${BASH_REMATCH[2]}
+    elif [[ $spec =~ ^[0-9]{1,5}$ ]]; then port=$spec
+    else echo "Invalid forward: $spec" >&2; return 2; fi
+    ((10#$port >= 1 && 10#$port <= 65535)) || { echo "Invalid port: $port" >&2; return 2; }
+    key=${host##*@}:${name:-$i}
+    [[ ! ${seen[$key]+yes} ]] || { echo "Duplicate tunnel name: $key" >&2; return 2; }
+    seen[$key]=1; names+=("$key"); targets+=("$target"); ports+=("$((10#$port))")
+  done
+  for i in "${!names[@]}"; do
+    port=$(getport "${names[i]}") || return
+    forwards+=(-L "127.0.0.1:$port:${targets[i]}:${ports[i]}")
+    printf '%s -> 127.0.0.1:%s -> %s:%s\n' "${names[i]}" "$port" "${targets[i]}" "${ports[i]}" >&2
+  done
+  echo 'sshh: opening forwards; Ctrl-C closes them. Broken connections time out; no automatic reconnect.' >&2
+  ssh -N -T -o ControlPath=none -o ControlMaster=no -o ControlPersist=no -o ForkAfterAuthentication=no \
+    -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "${forwards[@]}" -- "$host"
 }
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
@@ -122,8 +202,8 @@ PY
 function launch_and_close () { "$@" & disown "$!"; idle_exit; }
 function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
-function rd () { launch_and_close rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@"; }
-function xtv () { launch_and_close xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@"; }
+function rd () { if (($#)); then local target; target=$(__tunnel_target : "$1") || return; shift; set -- "$target" "$@"; fi; launch_and_close rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@"; }
+function xtv () { if (($#)); then local target; target=$(__tunnel_target :: "$1") || return; shift; set -- "$target" "$@"; fi; launch_and_close xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@"; }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
 

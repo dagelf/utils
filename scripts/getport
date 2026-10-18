@@ -30,11 +30,23 @@ def available(port):
 
 
 def main():
-    if len(sys.argv) > 2 or (len(sys.argv) == 2 and not sys.argv[1]):
-        print("Usage: getport [name]", file=sys.stderr)
+    lookup = len(sys.argv) > 1 and sys.argv[1] == "--lookup"
+    args = sys.argv[2:] if lookup else sys.argv[1:]
+    if len(args) > 1 or (lookup and not args) or (args and not args[0]):
+        print("Usage: getport [name] | getport --lookup name", file=sys.stderr)
         return 2
-    name = sys.argv[1] if len(sys.argv) == 2 else None
+    name = args[0] if args else None
     state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "dagelf-utils"
+    if lookup:
+        database = state / "ports.sqlite3"
+        if not database.exists():
+            return 1
+        with contextlib.closing(sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)) as db:
+            row = db.execute("SELECT port FROM ports WHERE name = ?", (name,)).fetchone()
+        if not row:
+            return 1
+        print(row[0])
+        return 0
     state.mkdir(parents=True, exist_ok=True)
     with contextlib.closing(sqlite3.connect(state / "ports.sqlite3", timeout=30)) as db:
         with db:
@@ -59,4 +71,4 @@ if __name__ == "__main__":
         sys.exit(main())
     except (OSError, sqlite3.Error, RuntimeError) as exc:
         print(f"getport: {exc}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
