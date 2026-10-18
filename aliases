@@ -107,6 +107,7 @@ PY
   if [[ $? == 0 ]]; then exit; fi
 }
 function launch_and_close () { "$@" & disown "$!"; idle_exit; }
+function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
 function rd () { launch_and_close rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@"; }
 function xtv () { launch_and_close xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@"; }
