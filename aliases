@@ -161,7 +161,12 @@ function sshh () {
     seen[$key]=1; names+=("$key"); targets+=("$target"); ports+=("$((10#$port))")
   done
   for i in "${!names[@]}"; do
-    port=$(getport "${names[i]}") || return
+    # Reuse the allocation during setup, before SSH has opened its listener.
+    if port=$(getport --lookup "${names[i]}"); then :
+    else
+      local status=$?; ((status == 1)) || return "$status"
+      port=$(getport "${names[i]}") || return
+    fi
     forwards+=(-L "127.0.0.1:$port:${targets[i]}:${ports[i]}")
     printf '%s -> 127.0.0.1:%s -> %s:%s\n' "${names[i]}" "$port" "${targets[i]}" "${ports[i]}" >&2
   done

@@ -4,10 +4,12 @@
 # Missing capability: persistent port allocation serialized across CLI callers.
 import contextlib
 import errno
+import itertools
 import os
 from pathlib import Path
 import socket
 import sqlite3
+import subprocess
 import sys
 
 
@@ -69,21 +71,31 @@ def main():
         with db:
             db.execute("BEGIN IMMEDIATE")
             db.execute("CREATE TABLE IF NOT EXISTS ports (port INTEGER PRIMARY KEY, name TEXT UNIQUE)")
+            db.execute("CREATE TABLE IF NOT EXISTS free_ports (port INTEGER PRIMARY KEY)")
             row = db.execute("SELECT port FROM ports WHERE name = ?", (name,)).fetchone()
             if row:
                 port = row[0]
+                listeners = subprocess.run(["ss", "-H", "-lntu", f"sport = :{port}"], capture_output=True, text=True, check=True).stdout
+                if not listeners.strip():
+                    db.execute("DELETE FROM ports WHERE port = ?", (port,))
+                    db.execute("INSERT OR IGNORE INTO free_ports VALUES (?)", (port,))
+                    return 1
             else:
-                port = db.execute("SELECT COALESCE(MAX(port), 9999) + 1 FROM ports").fetchone()[0]
-                while port <= 65535:
+                start = db.execute("SELECT COALESCE(MAX(port), 9999) + 1 FROM (SELECT MAX(port) AS port FROM ports UNION ALL SELECT MAX(port) FROM free_ports)").fetchone()[0]
+                recycled = (row[0] for row in db.execute("SELECT port FROM free_ports ORDER BY port"))
+                for port in itertools.chain(recycled, range(start, 65536)):
                     allocated_name = name if name is not None else f"{caller}:{port}"
                     if not db.execute("SELECT 1 FROM ports WHERE name = ?", (allocated_name,)).fetchone() and available(port):
                         break
-                    port += 1
-                if port > 65535:
+                else:
                     raise RuntimeError("no available ports remain")
                 db.execute("INSERT INTO ports (port, name) VALUES (?, ?)", (port, allocated_name))
+                db.execute("DELETE FROM free_ports WHERE port = ?", (port,))
         if caller is not None:
             print(f"getport: {allocated_name}", file=sys.stderr)
+        elif row:
+            scheme = "tcp" if any(line.startswith("tcp") for line in listeners.splitlines()) else "udp"
+            print(f"{scheme}://127.0.0.1:{port}", file=sys.stderr)
         print(port)
     return 0
 
@@ -91,6 +103,6 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (OSError, sqlite3.Error, RuntimeError) as exc:
+    except (OSError, sqlite3.Error, RuntimeError, subprocess.CalledProcessError) as exc:
         print(f"getport: {exc}", file=sys.stderr)
         sys.exit(2)

@@ -37,14 +37,18 @@ Reload after updating: `source ~/utils/aliases`. The SSH wrapper preserves optio
 ### Port registry
 
 ```bash
-getport myapp               # allocate once; later calls return the same port
-getport --lookup myapp      # lookup only; exit 1 if absent, without allocating
+getport myapp               # allocate if new; otherwise check whether it is listening
+getport --lookup myapp      # raw registry lookup, without checking or changing anything
 port=$(getport)             # allocate a fresh port; print its generated name to stderr
 ```
 
-Ports start at 10000 and increase. With no name, each call gets a fresh allocation named `<caller-basename>:<port>`, for example `deploy.sh:10001`. The caller is the parent command, or its script filename for common interpreters; interactive shells and `bash -c` use `bash`. The generated name goes to stderr as `getport: deploy.sh:10001`. Stdout contains only the number, so command substitution works. `getport deploy.sh:10001` retrieves that allocation later.
+Ports start at 10000; released ports are reused before allocating higher numbers. With no name, each call gets a fresh allocation named `<caller-basename>:<port>`, for example `deploy.sh:10001`. The caller is the parent command, or its script filename for common interpreters; interactive shells and `bash -c` use `bash`. The generated name goes to stderr as `getport: deploy.sh:10001`. Stdout contains only the number, so command substitution works.
 
-The registry lives at `${XDG_STATE_HOME:-$HOME/.local/state}/dagelf-utils/ports.sqlite3`. SQLite serializes concurrent allocations and enforces unique names and ports. New allocations skip ports already bound for TCP or UDP on IPv4 or IPv6. Existing names retain their port even when it is in use. Allocations persist after applications exit; this is a registry, not an OS reservation, so unrelated programs can still claim an unused port.
+For an existing name, `getport name` checks local TCP/UDP listeners with `ss`. A live allocation prints the port to stdout and a URL such as `tcp://127.0.0.1:10001` (or `udp://...`) to stderr. These URLs identify the transport; they do not assume the service is HTTP. If no listener remains, it deletes the allocation, makes the port reusable, prints nothing on either stream, and exits 1. Calling that now-absent name again allocates a port. A new allocation also has no listener until your application binds it, so checking it before then releases it too.
+
+`getport --lookup name` is the read-only registry operation: it returns the stored number without probing or reclaiming it, or exits 1 silently if absent. The tunnel helpers use this during setup, before SSH can bind its ports. Other errors exit 2.
+
+The registry lives at `${XDG_STATE_HOME:-$HOME/.local/state}/dagelf-utils/ports.sqlite3`. SQLite serializes concurrent allocations and enforces unique names and ports. New allocations skip ports already bound for TCP or UDP on IPv4 or IPv6. Allocations persist until checked and found closed; this is a registry, not an OS reservation, so unrelated programs can still claim an unused port. Liveness checks identify a listening port, not ownership of its process.
 
 ### Named forwards
 
