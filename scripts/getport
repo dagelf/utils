@@ -11,6 +11,22 @@ import sqlite3
 import sys
 
 
+def caller_name():
+    """Use the parent command, or its script name for common interpreters."""
+    parent = Path(f"/proc/{os.getppid()}")
+    args = [os.fsdecode(arg) for arg in (parent / "cmdline").read_bytes().split(b"\0") if arg]
+    if not args:
+        return (parent / "comm").read_text().strip()
+    command = Path(args[0]).name.lstrip("-")
+    if command in ("sh", "bash", "dash", "zsh", "ksh", "fish", "node", "ruby", "perl") or command.startswith("python"):
+        for arg in args[1:]:
+            if arg in ("-c", "-m"):
+                break
+            if not arg.startswith("-"):
+                return Path(arg).name
+    return command
+
+
 def available(port):
     with contextlib.ExitStack() as sockets:
         for family, address in ((socket.AF_INET, "0.0.0.0"), (socket.AF_INET6, "::")):
@@ -36,6 +52,7 @@ def main():
         print("Usage: getport [name] | getport --lookup name", file=sys.stderr)
         return 2
     name = args[0] if args else None
+    caller = caller_name() if name is None else None
     state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "dagelf-utils"
     if lookup:
         database = state / "ports.sqlite3"
@@ -57,11 +74,16 @@ def main():
                 port = row[0]
             else:
                 port = db.execute("SELECT COALESCE(MAX(port), 9999) + 1 FROM ports").fetchone()[0]
-                while port <= 65535 and not available(port):
+                while port <= 65535:
+                    allocated_name = name if name is not None else f"{caller}:{port}"
+                    if not db.execute("SELECT 1 FROM ports WHERE name = ?", (allocated_name,)).fetchone() and available(port):
+                        break
                     port += 1
                 if port > 65535:
                     raise RuntimeError("no available ports remain")
-                db.execute("INSERT INTO ports (port, name) VALUES (?, ?)", (port, name))
+                db.execute("INSERT INTO ports (port, name) VALUES (?, ?)", (port, allocated_name))
+        if caller is not None:
+            print(f"getport: {allocated_name}", file=sys.stderr)
         print(port)
     return 0
 
