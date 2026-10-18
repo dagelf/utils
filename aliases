@@ -13,7 +13,7 @@ function a () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wa
 function aaa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
 function aa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 
-function f () { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)"; }
+function f () { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)" && idle_exit; }
 function tldr () { curl cheat.sh/$1; }; # like tldr, better than man
 alias cheat=tldr
 
