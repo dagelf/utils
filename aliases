@@ -140,9 +140,9 @@ function ssh () {
 }
 
 # Keep forwards in this foreground SSH connection; its exit closes all listeners.
-function sshh () {
+function sshh () (
   (($# >= 2)) || { echo 'Usage: sshh host [name:][target:]port ...' >&2; return 2; }
-  local host=$1 spec name target port key i=0
+  local host=$1 spec name target port key lock state i=0
   local -a names=() targets=() ports=() forwards=()
   local -A seen=()
   [[ $host =~ ^([[:alnum:]_.-]+@)?[[:alnum:]_][[:alnum:]_.-]*$ ]] || { echo "Invalid SSH host: $host" >&2; return 2; }
@@ -160,6 +160,13 @@ function sshh () {
     [[ ! ${seen[$key]+yes} ]] || { echo "Duplicate tunnel name: $key" >&2; return 2; }
     seen[$key]=1; names+=("$key"); targets+=("$target"); ports+=("$((10#$port))")
   done
+  # Hold each name for this connection, including the allocation-to-bind window.
+  state=${XDG_STATE_HOME:-$HOME/.local/state}/dagelf-utils
+  mkdir -p "$state" || return
+  for key in "${names[@]}"; do
+    exec {lock}>"$state/sshh-$key.lock" || return
+    flock -n "$lock" || { echo "Tunnel already active or starting: $key" >&2; return 1; }
+  done
   for i in "${!names[@]}"; do
     # Reuse the allocation during setup, before SSH has opened its listener.
     if port=$(getport --lookup "${names[i]}"); then :
@@ -173,7 +180,7 @@ function sshh () {
   echo 'sshh: opening forwards; Ctrl-C closes them. Broken connections time out; no automatic reconnect.' >&2
   ssh -N -T -o ControlPath=none -o ControlMaster=no -o ControlPersist=no -o ForkAfterAuthentication=no \
     -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "${forwards[@]}" -- "$host"
-}
+)
 alias ips='ip addr|egrep "(^.\:)|inet\ "|cut -d: -f1-2|sed s@inet@@g'
 alias iptables='sudo iptables'
 alias modprobe='sudo modprobe'
