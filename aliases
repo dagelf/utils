@@ -277,3 +277,8 @@ alias clauded='ANTHROPIC_API_KEY="$(sudo cat "$OPENROUTER_KEY_FILE")" ANTHROPIC_
 alias clauden='ANTHROPIC_API_KEY="$(sudo cat "$NVIDIA_KEY_FILE")" ANTHROPIC_BASE_URL="$(cat "$NVIDIA_BASEURL_FILE")" ANTHROPIC_DEFAULT_OPUS_MODEL=z-ai/glm-5.1 ANTHROPIC_DEFAULT_SONNET_MODEL=minimaxai/minimax-m2.7 ANTHROPIC_DEFAULT_HAIKU_MODEL=openai/gpt-oss-20b command claude'
 unalias hf 2>/dev/null
 function hf () { HF_TOKEN="$(sudo cat "$HF_KEY_FILE")" || return; export HF_TOKEN; "${HF_BIN:-hf}" "$@"; }
+
+alias ping="ping -O"
+alias traceroute="traceroute -n"
+alias tracert=traceroute
+
