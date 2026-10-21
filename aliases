@@ -13,7 +13,19 @@ function a () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done|sort -k1;wa
 function aaa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /"&done;wait;)};         # and don't sort output
 function aa () {(for a in $SERVERS; do ssh $a $*|sed "s/^/$a: /";done;)};               # or run in series
 
-function f () { wmctrl -a "$(wmctrl -l|grep -v '\- f '|fzf --query="$1" --exact --select-1|cut -d\  -f5-)" && idle_exit; }
+function f () {
+    local selection window tab title bridge="$HOME/windowsort/firefox/bridge.py"
+    selection=$({
+        wmctrl -l | grep -v '\- f ' | awk '{id=$1; sub(/^[^ ]+ +[^ ]+ +[^ ]+ +/, ""); print id "\t-\t" $0}'
+        if [ -f "$bridge" ]; then python3 "$bridge" --list; fi
+    } | fzf --query="${1:-}" --exact --select-1 --delimiter=$'\t' --with-nth=3..) || return
+    IFS=$'\t' read -r window tab title <<< "$selection"
+    [ -n "$window" ] || return
+    if [ "$tab" != - ]; then
+        python3 "$bridge" --activate "$window" "$tab" || return
+    fi
+    wmctrl -ia "$window" && idle_exit
+}
 function tldr () { curl cheat.sh/$1; }; # like tldr, better than man
 alias cheat=tldr
 
