@@ -293,4 +293,7 @@ function hf () { HF_TOKEN="$(sudo cat "$HF_KEY_FILE")" || return; export HF_TOKE
 alias ping="ping -O"
 alias traceroute="traceroute -n"
 alias tracert=traceroute
+alias lsof="lsof -ni -P"
+alias lsoff="xdg-open http://\$(lsof -nPiTCP -sTCP:LISTEN|fzf|awk '{sub(/\*/,\"127.0.0.1\",$9);print $9}')"
+function kp() { kill $* $(lsof -nPiTCP -sTCP:LISTEN|fzf|awk '{print $2}'); }
 
