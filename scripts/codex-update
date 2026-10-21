@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+check_only=false
+include_desktop=false
+hostname=''
+usage() {
+  echo "Usage: $0 [--check] [--desktop] | [user@]hostname" >&2
+  exit 1
+}
+for argument in "$@"; do
+  case "$argument" in
+    --check) check_only=true ;;
+    --desktop) include_desktop=true ;;
+    -*) usage ;;
+    *)
+      [[ -z $hostname ]] || usage
+      hostname=$argument
+      ;;
+  esac
+done
+if [[ -n $hostname ]]; then
+  if "$check_only" || "$include_desktop"; then usage; fi
+  temporary=$(mktemp -d)
+  trap 'rm -rf -- "$temporary"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  scp \
+    "$hostname:/usr/local/bin/codex" \
+    "$hostname:/usr/local/bin/codex-code-mode-host" \
+    "$temporary/"
+  sudo install -d /usr/local/bin
+  sudo install -m 0755 \
+    "$temporary/codex" \
+    "$temporary/codex-code-mode-host" \
+    /usr/local/bin/
+  printf 'Copied codex and codex-code-mode-host from %s to /usr/local/bin.\n' "$hostname"
+  exit 0
+fi
+architecture=$(uname -m)
+case "$architecture" in
+  x86_64|aarch64) ;;
+  *) echo "Unsupported architecture: $architecture" >&2; exit 1 ;;
+esac
+
+if ! "$check_only"; then
+  sudo whoami
+  cache="${XDG_CACHE_HOME:-$HOME/.cache}/codex-update"
+  mkdir -p "$cache"
+  chmod 0700 "$cache"
+fi
+
+temporary=$(mktemp -d)
+trap 'rm -rf -- "$temporary"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+fetch() {
+  axel --num-connections=4 --timeout=15 --output="$2" "$1"
+}
+fetch_cached() {
+  local url=$1 checksum=$2 output=$3
+  local cached="$cache/$checksum"
+  if [[ -f $cached ]] && printf '%s  %s\n' "$checksum" "$cached" | sha256sum -c --status; then
+    printf 'Using verified download: %s\n' "${url##*/}"
+  else
+    # Publish only complete, verified downloads. Keep the cache on failure.
+    fetch "$url" "$output"
+    printf '%s  %s\n' "$checksum" "$output" | sha256sum -c -
+    mv -f -- "$output" "$cached"
+  fi
+  cp -- "$cached" "$output"
+}
+repository='https://persistent.oaistatic.com/codex-app-prod/linux/arch'
+fetch 'https://api.github.com/repos/openai/codex/releases/latest' "$temporary/cli.json"
+if "$include_desktop"; then
+  fetch "$repository/$architecture/openai-chatgpt.db" "$temporary/desktop.db"
+  fetch "$repository/$architecture/openai-chatgpt.db.sig" "$temporary/desktop.db.sig"
+fi
+
+# Resolve both CLI binaries from one latest release, and the optional desktop
+# from its live repository catalog. Never execute downloaded installer scripts.
+python3 - "$temporary" "$architecture" "$include_desktop" <<'PY'
+import json, pathlib, re, sys, tarfile
+root = pathlib.Path(sys.argv[1])
+arch = sys.argv[2]
+release = json.loads((root / 'cli.json').read_text())
+tag = release['tag_name']
+if release.get('draft') or release.get('prerelease') or not re.fullmatch(r'rust-v[0-9.]+', tag):
+    raise SystemExit('Unexpected CLI release metadata')
+assets = {asset['name']: asset for asset in release['assets']}
+with (root / 'cli-assets').open('w') as out:
+    for name in ('codex', 'codex-code-mode-host'):
+        filename = f'{name}-{arch}-unknown-linux-musl.zst'
+        asset = assets[filename]
+        url = f'https://github.com/openai/codex/releases/download/{tag}/{filename}'
+        digest = asset.get('digest', '')
+        if asset['browser_download_url'] != url or not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+            raise SystemExit(f'Invalid URL or missing checksum for {filename}')
+        print(name, url, digest[7:], file=out)
+(root / 'cli-version').write_text(tag[6:])
+if sys.argv[3] != 'true':
+    sys.exit(0)
+packages = []
+with tarfile.open(root / 'desktop.db') as archive:
+    for member in archive:
+        if member.isfile() and member.name.endswith('/desc'):
+            fields = {}
+            for block in archive.extractfile(member).read().decode().strip().split('\n\n'):
+                lines = block.splitlines()
+                fields[lines[0].strip('%')] = '\n'.join(lines[1:])
+            if fields.get('NAME') == 'chatgpt-bin':
+                packages.append(fields)
+if len(packages) != 1:
+    raise SystemExit('Expected exactly one chatgpt-bin package')
+package = packages[0]
+version, filename, checksum = (package[k] for k in ('VERSION', 'FILENAME', 'SHA256SUM'))
+if (not re.fullmatch(r'[0-9.]+-[0-9]+', version)
+        or filename != f'chatgpt-bin-{version}-{arch}.pkg.tar.zst'
+        or package['ARCH'] != arch or not re.fullmatch(r'[0-9a-f]{64}', checksum)):
+    raise SystemExit('Invalid desktop package metadata')
+(root / 'desktop-info').write_text(f'{version} {filename} {checksum}\n')
+PY
+
+if "$include_desktop"; then
+  read -r desktop_version desktop_filename desktop_checksum <"$temporary/desktop-info"
+  # The untrusted version is used only to locate a key; the pinned fingerprint
+  # and database signature must match before using any release information.
+  fetch "$repository/${desktop_version%-*}/repository-signing-key.gpg" "$temporary/key.gpg"
+  mkdir -m 0700 "$temporary/gnupg"
+  gpg_options=(--homedir "$temporary/gnupg" --batch --no-autostart --no-auto-key-retrieve --no-auto-key-import)
+  fingerprints=$(gpg "${gpg_options[@]}" --show-keys --with-colons "$temporary/key.gpg" |
+    awk -F: '$1 == "pub" { primary=1 } $1 == "sub" { primary=0 } $1 == "fpr" && primary { print $10; primary=0 }')
+  if [[ $fingerprints != 3BFA0E4AE8B8CC16A2D9BA684A3B4A566C4660E4 ]]; then
+    echo 'OpenAI signing-key fingerprint mismatch; stopping.' >&2
+    exit 1
+  fi
+  gpg "${gpg_options[@]}" --import "$temporary/key.gpg"
+  gpg "${gpg_options[@]}" --verify "$temporary/desktop.db.sig" "$temporary/desktop.db"
+fi
+
+printf 'Latest CLI: %s (codex and codex-code-mode-host)\n' "$(cat "$temporary/cli-version")"
+if "$include_desktop"; then
+  printf 'Latest desktop: %s\n' "$desktop_version"
+fi
+if "$check_only"; then exit 0; fi
+
+# Finish downloads and verification before replacing any installed files.
+while read -r name url checksum; do
+  fetch_cached "$url" "$checksum" "$temporary/$name.zst"
+  zstd -dc "$temporary/$name.zst" >"$temporary/$name"
+done <"$temporary/cli-assets"
+if "$include_desktop"; then
+  fetch_cached "$repository/$architecture/$desktop_filename" "$desktop_checksum" "$temporary/desktop.pkg.tar.zst"
+  mkdir "$temporary/unpacked"
+  # The desktop is an Electron bundle, so its executable needs the files beside
+  # it. Extract only that bundle, without running the package's install hooks.
+  tar --zstd -xf "$temporary/desktop.pkg.tar.zst" -C "$temporary/unpacked" \
+    --no-same-owner --no-same-permissions usr/lib/chatgpt
+  test -x "$temporary/unpacked/usr/lib/chatgpt/ChatGPT"
+  test -x "$temporary/unpacked/usr/lib/chatgpt/codex-launcher"
+fi
+
+until sudo whoami; do
+  echo 'Sudo failed; retrying before installation. Press Ctrl-C to cancel; downloads are cached.' >&2
+  sleep 1
+done
+sudo install -d /usr/local/bin
+if "$include_desktop"; then
+  sudo install -d /usr/local/lib
+fi
+if "$include_desktop"; then
+  if [[ -e /usr/local/lib/chatgpt && ! -L /usr/local/lib/chatgpt ]]; then
+    echo '/usr/local/lib/chatgpt already exists and is not a symlink; stopping.' >&2
+    exit 1
+  fi
+  # Retain previous versions so a running app can finish using its own files.
+  # Re-running the updater for the same release does not create another copy.
+  destination="/usr/local/lib/chatgpt-$desktop_version"
+  if [[ ! -d $destination ]]; then
+    staging=$(sudo mktemp -d /usr/local/lib/.chatgpt-update.XXXXXX)
+    sudo cp -a "$temporary/unpacked/usr/lib/chatgpt/." "$staging/"
+    sudo chown -R root:root "$staging"
+    sudo chmod 0755 "$staging"
+    sudo mv -T "$staging" "$destination"
+  fi
+fi
+
+for name in codex codex-code-mode-host; do
+  sudo install -m 0755 "$temporary/$name" "/usr/local/bin/$name"
+done
+if "$include_desktop"; then
+  sudo ln -sfnT "$destination" /usr/local/lib/chatgpt
+  sudo ln -sfnT /usr/local/lib/chatgpt/codex-launcher /usr/local/bin/chatgpt
+  printf 'Installed codex, codex-code-mode-host, and chatgpt under /usr/local.\n'
+else
+  printf 'Installed codex and codex-code-mode-host under /usr/local.\n'
+fi
