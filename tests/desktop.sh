@@ -109,7 +109,7 @@ PYTEST
 declare -f > "$fixture/functions"
 python3 - "$fixture/functions" <<'PYTEST'
 import json, os, pty, select, subprocess, sys, time
-for target in ('abc', 'desktop.example:7'):
+for target in ('97', 'desktop.example:7'):
     master, slave = pty.openpty()
     process = subprocess.Popen(
         ['bash', '-c', 'source "$1"; xtv "$2"', 'bash', sys.argv[1], target],
@@ -125,7 +125,7 @@ for target in ('abc', 'desktop.example:7'):
         os.write(master, b'prompted-secret\n')
         assert process.wait(timeout=5) == 0
         args, password, env = json.load(open(os.environ['CAPTURE']))
-        expected = 'device97.example' if target == 'abc' else target
+        expected = 'device97.example' if target == '97' else target
         assert expected in args and '-autopass' in args
         assert password == 'prompted-secret\n' and env is None
     finally:
