@@ -392,8 +392,7 @@ function xtv () {
   for arg in "$@"; do
     case $arg in -passwd|-autopass|-listen) override=1;; esac
   done
-  if [[ ! $override && -n $device && -n ${PASSWORDFILE:-} ]]; then
-    [[ $device_loaded ]] || { echo 'Password lookup failed (no matching device)' >&2; return 2; }
+  if [[ ! $override && -n $device_loaded ]]; then
     password=$(__device_secret "$device_password") || return
   fi
   if [[ -n $device ]]; then
@@ -401,7 +400,7 @@ function xtv () {
   fi
   local -a viewer=(xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@")
   if [[ $override ]]; then launch_and_close "${viewer[@]}"; return; fi
-  if [[ -n $device && -n ${PASSWORDFILE:-} ]]; then
+  if [[ -n $device_loaded ]]; then
     __desktop_password_launch "$password" "${viewer[@]}" -autopass; return
   fi
   if [[ -t 0 && $# -gt 0 ]]; then

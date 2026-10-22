@@ -98,7 +98,42 @@ assert password == sys.argv[1] + '\n' and env is None
 PYTEST
 done
 printf '%s\n' 'xtv 197 wrong' > "$PASSWORDFILE"
-if xtv abc 2>/dev/null; then fail 'substring record accepted'; fi
+# With no terminal, leave prompting to the viewer; never use a substring match.
+xtv abc </dev/null
+python3 - <<'PYTEST'
+import json, os
+args, password, _ = json.load(open(os.environ['CAPTURE']))
+assert 'device97.example' in args and '-autopass' not in args and password == ''
+PYTEST
+# A real terminal must reach the existing hidden password prompt.
+declare -f > "$fixture/functions"
+python3 - "$fixture/functions" <<'PYTEST'
+import json, os, pty, select, subprocess, sys, time
+for target in ('abc', 'desktop.example:7'):
+    master, slave = pty.openpty()
+    process = subprocess.Popen(
+        ['bash', '-c', 'source "$1"; xtv "$2"', 'bash', sys.argv[1], target],
+        stdin=slave, stdout=slave, stderr=slave)
+    os.close(slave)
+    output = b''
+    try:
+        deadline = time.monotonic() + 5
+        while b'VNC password (empty if none): ' not in output:
+            remaining = deadline - time.monotonic()
+            assert remaining > 0 and select.select([master], [], [], remaining)[0], output
+            output += os.read(master, 4096)
+        os.write(master, b'prompted-secret\n')
+        assert process.wait(timeout=5) == 0
+        args, password, env = json.load(open(os.environ['CAPTURE']))
+        expected = 'device97.example' if target == 'abc' else target
+        assert expected in args and '-autopass' in args
+        assert password == 'prompted-secret\n' and env is None
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        os.close(master)
+PYTEST
 printf '%s\n' 'rd 97 p a $() `literal` "quote"' 'xtv 97 p a $() `literal` "quote"' > "$PASSWORDFILE"
 # A registered bare name wins over the direct device address.
 port=$(getport 97 2>/dev/null)
