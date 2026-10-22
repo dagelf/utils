@@ -31,7 +31,7 @@ alias cheat=tldr
 
 # packages
 alias apks='zgrep Commandline /var/log/apt/history.log*gz /var/log/apt/history.log|cut -d: -f2-|cut -d: -f2-|egrep -v "(apt-get|unattended-upgrade)"'
-alias apt='sudo apt'
+alias apt='sudo apt -y'
 alias apt-get='sudo apt-get'
 alias systemctl='sudo systemctl'
 alias mount='sudo mount'
