@@ -36,7 +36,7 @@ alias complex='ssh host'
 [[ $(__tunnel_target : "$(__device_name abc)") == device97.example ]] || fail 'numeric alias'
 [[ $(__tunnel_target :: 97) == device97.example ]] || fail 'numeric device'
 # Quotes, shell syntax and spaces are password data.
-printf '%s\n' '197 wrong' '97 p a $() `literal` "quote"' > "$PASSWORDFILE"
+printf '%s\n' 'xtv 197 wrong' 'xtv 97 p a $() `literal` "quote"' 'rd 97 p a $() `literal` "quote"' > "$PASSWORDFILE"
 xtv abc
 python3 - <<'PY'
 import json, os
@@ -52,8 +52,24 @@ args, password, env = json.load(open(os.environ['CAPTURE']))
 assert 'device97.example' in args and args[args.index('-p') + 1] == '-'
 assert password == 'p a $() `literal` "quote"\n' and env is None
 PY
+# Caller identity is part of the key; arbitrary caller names are supported.
+printf '%s\n' 'xtv 97 vnc-password' 'rd 97 rdp-password' 'ssh 97 ssh-password' 'curl 97 curl-password' 'custom 97 custom-password' > "$PASSWORDFILE"
+for caller in xtv rd ssh curl custom; do
+  case $caller in xtv) expected=vnc-password;; rd) expected=rdp-password;; *) expected=$caller-password;; esac
+  [[ $(__device_password "$caller" 97) == "$expected" ]] || fail "caller lookup: $caller"
+done
+for caller in xtv rd; do
+  "$caller" abc
+  python3 - "$caller" <<'PYTEST'
+import json, os, sys
+_, password, _ = json.load(open(os.environ['CAPTURE']))
+assert password == {'xtv': 'vnc-password\n', 'rd': 'rdp-password\n'}[sys.argv[1]]
+PYTEST
+done
+printf '%s\n' 'ssh 97 only-ssh' > "$PASSWORDFILE"
+if rd abc 2>/dev/null; then fail 'password borrowed from another caller'; fi
 # References resolve beside PASSWORDFILE, regardless of the working directory.
-printf '%s\n' '97 ./97 secret.passwd' > "$PASSWORDFILE"
+printf '%s\n' 'xtv 97 ./97 secret.passwd' 'rd 97 ./97 secret.passwd' > "$PASSWORDFILE"
 printf '%s\n' 'file p a $() `literal` "quote"' > "$fixture/97 secret.passwd"
 for viewer in rd xtv; do
   (cd /; "$viewer" abc)
@@ -66,14 +82,14 @@ PYTEST
 done
 # File contents remain literal, including text starting with ./.
 printf '%s\n' './literal-password' > "$fixture/97 secret.passwd"
-[[ $(__device_password 97) == ./literal-password ]] || fail 'recursive reference'
-printf '%s\n' '97 ./absent.passwd' > "$PASSWORDFILE"
+[[ $(__device_password rd 97) == ./literal-password ]] || fail 'recursive reference'
+printf '%s\n' 'rd 97 ./absent.passwd' > "$PASSWORDFILE"
 if rd abc 2>/dev/null; then fail 'missing referenced file accepted'; fi
-printf '%s\n' '97 /literal-password' > "$PASSWORDFILE"
-[[ $(__device_password 97) == /literal-password ]] || fail 'absolute path must stay literal'
+printf '%s\n' 'rd 97 /literal-password' > "$PASSWORDFILE"
+[[ $(__device_password rd 97) == /literal-password ]] || fail 'absolute path must stay literal'
 # Empty and single-hyphen passwords are data, including for RDP.
 for secret in '' '-'; do
-  printf '97 %s\n' "$secret" > "$PASSWORDFILE"
+  printf 'rd 97 %s\n' "$secret" > "$PASSWORDFILE"
   rd abc
   python3 - "$secret" <<'PYTEST'
 import json, os, sys
@@ -81,9 +97,9 @@ _, password, env = json.load(open(os.environ['CAPTURE']))
 assert password == sys.argv[1] + '\n' and env is None
 PYTEST
 done
-printf '%s\n' '197 wrong' > "$PASSWORDFILE"
+printf '%s\n' 'xtv 197 wrong' > "$PASSWORDFILE"
 if xtv abc 2>/dev/null; then fail 'substring record accepted'; fi
-printf '%s\n' '97 p a $() `literal` "quote"' > "$PASSWORDFILE"
+printf '%s\n' 'rd 97 p a $() `literal` "quote"' 'xtv 97 p a $() `literal` "quote"' > "$PASSWORDFILE"
 # A registered bare name wins over the direct device address.
 port=$(getport 97 2>/dev/null)
 [[ $(__tunnel_target :: "$(__device_name abc)") == "127.0.0.1::$port" ]] || fail 'bare registered name'
@@ -105,7 +121,7 @@ named=$(getport gateway:desktop 2>/dev/null)
 # Unknown lookups never allocate.
 [[ $(__tunnel_target : absent) == absent ]] || fail 'literal fallback'
 if getport --lookup absent; then fail 'lookup allocated'; fi
-printf '%s\n' '97 duplicate' >> "$PASSWORDFILE"
+printf '%s\n' 'rd 97 duplicate' >> "$PASSWORDFILE"
 if rd abc 2>/dev/null; then fail 'duplicate password accepted'; fi
 function sudo () { return 1; }
 if xtv abc 2>/dev/null; then fail 'sudo denial ignored'; fi

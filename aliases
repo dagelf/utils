@@ -245,22 +245,22 @@ PY
 function launch_and_close () { "$@" <&0 & disown "$!"; idle_exit "${close_delay:-5}"; }
 function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
-# Missing capability: read a device's password once, without shell evaluation.
-# PASSWORDFILE lines are: device<space>password (the password may contain spaces).
+# Missing capability: look up a password by caller and device, without evaluation.
+# PASSWORDFILE lines are: caller<space>device<space>password (spaces allowed).
 function __device_password () {
   [[ -n ${PASSWORDFILE:-} ]] || return 1
-  local records line password found= status
-  records=$(sudo grep -F -- "$1 " "$PASSWORDFILE"); status=$?
+  local records line password found= status key="$1 $2"
+  records=$(sudo grep -F -- "$key " "$PASSWORDFILE"); status=$?
   ((status == 0)) || { echo 'Password lookup failed (no match, unreadable file or sudo denied)' >&2; return 2; }
   while IFS= read -r line; do
-    [[ $line == "$1 "* ]] || continue
-    [[ ! $found ]] || { echo "Duplicate password record for $1" >&2; return 2; }
-    found=1; password=${line#"$1 "}
+    [[ $line == "$key "* ]] || continue
+    [[ ! $found ]] || { echo "Duplicate password record for $key" >&2; return 2; }
+    found=1; password=${line#"$key "}
   done <<< "$records"
-  [[ $found ]] || { echo "No password record for $1" >&2; return 2; }
+  [[ $found ]] || { echo "No password record for $key" >&2; return 2; }
   if [[ $password == ./* ]]; then
     password=$(sudo cat -- "$(dirname -- "$PASSWORDFILE")/$password") || {
-      echo "Password file reference failed for $1" >&2; return 2;
+      echo "Password file reference failed for $key" >&2; return 2;
     }
   fi
   printf '%s\n' "$password"
@@ -290,7 +290,7 @@ function rd () {
     else options+=("$1"); shift; fi
   done
   if [[ ! $override && -n $device && -n ${PASSWORDFILE:-} ]]; then
-    password=$(__device_password "$device") || return
+    password=$(__device_password rd "$device") || return
     prompt=
   fi
   local -a viewer=(rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p - -r disk:share=/dev/shm/rdp -r sound:local "${options[@]}")
@@ -313,7 +313,7 @@ function xtv () {
     case $arg in -passwd|-autopass|-listen) launch_and_close "${viewer[@]}"; return;; esac
   done
   if [[ -n $device && -n ${PASSWORDFILE:-} ]]; then
-    password=$(__device_password "$device") || return
+    password=$(__device_password xtv "$device") || return
     __desktop_password_launch "$password" "${viewer[@]}" -autopass; return
   fi
   if [[ -t 0 && $# -gt 0 ]]; then

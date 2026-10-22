@@ -99,12 +99,14 @@ any existing `__lan_resolve_target_token` profile function, as SSH already does.
 Alias chains work; cycles fail. Aliases containing commands or options are not executed.
 
 Set `export PASSWORDFILE="$HOME/.passwords"` in `~/.bashrc`. Keep that file private
-(`chmod 600 "$HOME/.passwords"`). Each line is a device key, one space, then its password:
+(`chmod 600 "$HOME/.passwords"`). Each line is a caller, a device key, and a password, separated by single spaces:
 
 ```text
-97 example password with spaces
-gateway:desktop another-password
-98 ./98.passwd
+xtv 97 example password with spaces
+rd 97 ./97-rdp.passwd
+xtv gateway:desktop another-password
+ssh 97 ./97-ssh.passwd
+curl 97 another-password
 ```
 
 Values starting with `./` reference a plaintext password file relative to
@@ -112,8 +114,11 @@ Values starting with `./` reference a plaintext password file relative to
 stripped. References are read once, never recursively expanded. An unreadable
 reference stops the launch. All other values remain literal passwords.
 
-The key is the resolved alias name, before translating it to a numeric address or
-local tunnel port. Passwords are literal text, never shell code. `sudo grep` reads
+The lookup key is the caller plus the resolved device alias, before translating
+the device to a numeric address or local tunnel port. `xtv` and `rd` select their
+own records automatically. The shared `__device_password caller device` function
+accepts any caller name; SSH and curl authentication adapters are not added here.
+Replace earlier two-column records with this three-column format. Passwords are literal text, never shell code. `sudo grep` reads
 the matching record once per launch. With `PASSWORDFILE` configured, missing or
 duplicate records and lookup failures stop the launch. Explicit `rd -p ...` and
 VNC authentication options override lookup. Without `PASSWORDFILE`, the previous
