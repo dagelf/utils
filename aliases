@@ -223,11 +223,40 @@ sys.exit(1 if active else 0)
 PY
   if [[ $? == 0 ]]; then exit; fi
 }
-function launch_and_close () { "$@" & disown "$!"; idle_exit; }
+# Explicit stdin redirection keeps supplied passwords available in background jobs.
+function launch_and_close () { "$@" <&0 & disown "$!"; idle_exit "${close_delay:-5}"; }
 function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
-function rd () { if (($#)); then local target; target=$(__tunnel_target : "$1") || return; shift; set -- "$target" "$@"; fi; launch_and_close rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@"; }
-function xtv () { if (($#)); then local target; target=$(__tunnel_target :: "$1") || return; shift; set -- "$target" "$@"; fi; launch_and_close xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@"; }
+function rd () {
+  local target password=${WIN_PASS:--} arg previous= close_delay=5
+  if (($#)); then target=$(__tunnel_target : "$1") || return; shift; set -- "$target" "$@"; fi
+  # Respect a command-line password override, including an explicit prompt (-p -).
+  for arg in "$@"; do [[ $previous != -p ]] || password=$arg; previous=$arg; done
+  local -a viewer=(rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@")
+  if [[ $password == - && -t 0 ]]; then
+    IFS= read -r -s -p 'RDP password: ' password; local status=$?; printf '\n' >&2
+    ((status == 0)) || return "$status"
+    launch_and_close "${viewer[@]}" <<< "$password"
+  else
+    launch_and_close "${viewer[@]}"
+  fi
+}
+function xtv () {
+  local target password arg close_delay=10
+  if (($#)); then target=$(__tunnel_target :: "$1") || return; shift; set -- "$target" "$@"; fi
+  local -a viewer=(xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@")
+  # Leave explicitly supplied authentication and redirected stdin to the viewer.
+  for arg in "$@"; do
+    case $arg in -passwd|-autopass|-listen) launch_and_close "${viewer[@]}"; return;; esac
+  done
+  if [[ -t 0 && $# -gt 0 ]]; then
+    IFS= read -r -s -p 'VNC password (empty if none): ' password; local status=$?; printf '\n' >&2
+    ((status == 0)) || return "$status"
+    launch_and_close "${viewer[@]}" -autopass <<< "$password"
+  else
+    launch_and_close "${viewer[@]}"
+  fi
+}
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};
 
