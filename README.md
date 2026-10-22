@@ -83,6 +83,53 @@ For VNC, `sshh abc desktop:host1:5900`, then `xtv abc:desktop`. `rd` and `xtv` r
 
 No SSH config entries are created and no service detection is needed: use `ssh` for an SSH destination, `rd` for RDP, or `xtv` for VNC. Registered names remain available for the next `sshh` run after a tunnel closes; they do not imply a live connection.
 
+### Device names and desktop passwords
+
+Keep device aliases in `~/.bash_aliases`, using ordinary single-word Bash aliases:
+
+```bash
+alias workstation=97
+# Or point a name at an existing tunnel:
+alias desktop=gateway:desktop
+```
+
+`xtv workstation`, `rd workstation` and `ssh workstation` resolve the alias each time.
+`xtv 97` and `rd 97` use the same device and password record. Numeric addresses use
+any existing `__lan_resolve_target_token` profile function, as SSH already does.
+Alias chains work; cycles fail. Aliases containing commands or options are not executed.
+
+Set `export PASSWORDFILE="$HOME/.passwords"` in `~/.bashrc`. Keep that file private
+(`chmod 600 "$HOME/.passwords"`). Each line is a device key, one space, then its password:
+
+```text
+97 example password with spaces
+gateway:desktop another-password
+```
+
+The key is the resolved alias name, before translating it to a numeric address or
+local tunnel port. Passwords are literal text, never shell code. `sudo grep` reads
+the matching record once per launch. With `PASSWORDFILE` configured, missing or
+duplicate records and lookup failures stop the launch. Explicit `rd -p ...` and
+VNC authentication options override lookup. Without `PASSWORDFILE`, the previous
+prompt/`WIN_PASS` behavior remains. The launcher passes passwords through its
+environment and then viewer stdin (`rdesktop -p -`, VNC `-autopass`); it removes the
+password environment variable before starting the viewer.
+
+Bare registry names now work alongside `gateway:desktop`. For a manually created
+VNC tunnel, allocate once and use the same key for the password and connection:
+
+```bash
+port=$(getport workstation)
+ssh -N -L "127.0.0.1:$port:remote-desktop:5900" gateway
+# In another terminal: xtv workstation
+# Read the mapping without allocating or probing: getport --lookup workstation
+```
+
+Here `workstation` must have no Bash alias; if it aliases another key, allocate
+and store the password under that resolved key instead. Closing SSH closes the
+forward. `rd` uses the same lookup for RDP forwards (remote port 3389).
+Reload updated definitions with `source ~/utils/aliases`.
+
 ### Stop listeners
 
 ```bash

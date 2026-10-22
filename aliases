@@ -109,11 +109,27 @@ function lsofkill () {
   return "$status"
 }
 # Missing capability: resolve registered tunnel names without allocating on lookup.
-function __tunnel_port () { [[ $1 == *:* ]] || return 1; getport --lookup "$1"; }
+# Reuse single-word Bash aliases as device names; never execute alias text.
+function __device_name () {
+  local name=$1 next
+  local -A seen=()
+  while [[ ${BASH_ALIASES[$name]+set} ]]; do
+    next=${BASH_ALIASES[$name]}
+    [[ $next =~ ^[[:alnum:]_@.:-]+$ ]] || break
+    [[ ! ${seen[$name]+set} ]] || { echo "Device alias cycle: $1" >&2; return 2; }
+    seen[$name]=1; name=$next
+  done
+  printf '%s\n' "$name"
+}
+function __tunnel_port () { getport --lookup "$1"; }
 function __tunnel_target () {
-  local port status
-  if port=$(__tunnel_port "$2"); then printf '127.0.0.1%s%s\n' "$1" "$port"
-  else status=$?; ((status == 1)) || return "$status"; printf '%s\n' "$2"; fi
+  local port status device=$2
+  if port=$(__tunnel_port "$device"); then printf '127.0.0.1%s%s\n' "$1" "$port"
+  else
+    status=$?; ((status == 1)) || return "$status"
+    if declare -F __lan_resolve_target_token >/dev/null; then __lan_resolve_target_token "$device"
+    else printf '%s\n' "$device"; fi
+  fi
 }
 
 # Shared with the numeric-host shortcut in the user's profile.
@@ -134,13 +150,15 @@ function ssh () {
   if ((i < n)); then
     target=${args[i]}
     [[ $target == *@* ]] && user=${target%@*}@
+    target=$(__device_name "${target##*@}") || return
+    args[i]="$user$target"
     if port=$(__tunnel_port "${target##*@}"); then
       args[i]="${user}127.0.0.1"
       tunnel_opts=(-p "$port" -o "HostKeyAlias=${target##*@}")
     else
       status=$?; ((status == 1)) || return "$status"
       if declare -F __lan_resolve_target_token >/dev/null; then
-        args[i]="$(__lan_resolve_target_token "$target")" || return
+        args[i]="$(__lan_resolve_target_token "$user$target")" || return
       fi
     fi
   fi
@@ -227,32 +245,76 @@ PY
 function launch_and_close () { "$@" <&0 & disown "$!"; idle_exit "${close_delay:-5}"; }
 function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
+# Missing capability: read a device's password once, without shell evaluation.
+# PASSWORDFILE lines are: device<space>password (the password may contain spaces).
+function __device_password () {
+  [[ -n ${PASSWORDFILE:-} ]] || return 1
+  local records line password found= status
+  records=$(sudo grep -F -- "$1 " "$PASSWORDFILE"); status=$?
+  ((status == 0)) || { echo 'Password lookup failed (no match, unreadable file or sudo denied)' >&2; return 2; }
+  while IFS= read -r line; do
+    [[ $line == "$1 "* ]] || continue
+    [[ ! $found ]] || { echo "Duplicate password record for $1" >&2; return 2; }
+    found=1; password=${line#"$1 "}
+  done <<< "$records"
+  [[ $found ]] || { echo "No password record for $1" >&2; return 2; }
+  printf '%s\n' "$password"
+}
+# The environment carries the password to the launcher, then stdin to the viewer.
+function __desktop_password_launch () {
+  local password=$1; shift
+  launch_and_close env "DESKTOP_PASSWORD=$password" bash -c '
+    password=$DESKTOP_PASSWORD
+    unset DESKTOP_PASSWORD
+    exec "$@" <<< "$password"
+  ' bash "$@"
+}
 function rd () {
-  local target password=${WIN_PASS:--} arg previous= close_delay=5
-  if (($#)); then target=$(__tunnel_target : "$1") || return; shift; set -- "$target" "$@"; fi
-  # Respect a command-line password override, including an explicit prompt (-p -).
-  for arg in "$@"; do [[ $previous != -p ]] || password=$arg; previous=$arg; done
-  local -a viewer=(rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p "${WIN_PASS:--}" -r disk:share=/dev/shm/rdp -r sound:local "$@")
-  if [[ $password == - && -t 0 ]]; then
-    IFS= read -r -s -p 'RDP password: ' password; local status=$?; printf '\n' >&2
-    ((status == 0)) || return "$status"
-    launch_and_close "${viewer[@]}" <<< "$password"
-  else
-    launch_and_close "${viewer[@]}"
+  local target device password=${WIN_PASS:--} override= prompt= status close_delay=5
+  [[ $password != - ]] || prompt=1
+  if (($#)); then
+    device=$(__device_name "$1") || return
+    target=$(__tunnel_target : "$device") || return; shift; set -- "$target" "$@"
   fi
+  local -a options=()
+  while (($#)); do
+    if [[ $1 == -p && $# -ge 2 ]]; then
+      password=$2; override=1; prompt=
+      [[ $password != - ]] || prompt=1
+      shift 2
+    else options+=("$1"); shift; fi
+  done
+  if [[ ! $override && -n $device && -n ${PASSWORDFILE:-} ]]; then
+    password=$(__device_password "$device") || return
+    prompt=
+  fi
+  local -a viewer=(rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p - -r disk:share=/dev/shm/rdp -r sound:local "${options[@]}")
+  if [[ $prompt ]]; then
+    if [[ -t 0 ]]; then
+      IFS= read -r -s -p 'RDP password: ' password; status=$?; printf '\n' >&2
+      ((status == 0)) || return "$status"
+    else launch_and_close "${viewer[@]}"; return; fi
+  fi
+  __desktop_password_launch "$password" "${viewer[@]}"
 }
 function xtv () {
-  local target password arg close_delay=10
-  if (($#)); then target=$(__tunnel_target :: "$1") || return; shift; set -- "$target" "$@"; fi
+  local target device password arg status close_delay=10
+  if (($#)); then
+    device=$(__device_name "$1") || return
+    target=$(__tunnel_target :: "$device") || return; shift; set -- "$target" "$@"
+  fi
   local -a viewer=(xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@")
-  # Leave explicitly supplied authentication and redirected stdin to the viewer.
   for arg in "$@"; do
     case $arg in -passwd|-autopass|-listen) launch_and_close "${viewer[@]}"; return;; esac
   done
+  if [[ -n $device && -n ${PASSWORDFILE:-} ]]; then
+    password=$(__device_password "$device") || return
+    __desktop_password_launch "$password" "${viewer[@]}" -autopass; return
+  fi
   if [[ -t 0 && $# -gt 0 ]]; then
-    IFS= read -r -s -p 'VNC password (empty if none): ' password; local status=$?; printf '\n' >&2
+    IFS= read -r -s -p 'VNC password (empty if none): ' password; status=$?; printf '\n' >&2
     ((status == 0)) || return "$status"
-    launch_and_close "${viewer[@]}" -autopass <<< "$password"
+    __desktop_password_launch "$password" "${viewer[@]}" -autopass
   else
     launch_and_close "${viewer[@]}"
   fi
