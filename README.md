@@ -131,6 +131,10 @@ arguments. SSH retains normal SSH authentication; its password field is not
 injected. Other callers launched by bare aliases receive `host:port` as their
 first argument and retain their own authentication behavior.
 
+Interactive RDP stays in the foreground. Its password is fed first, then terminal
+input remains available for certificate questions. Certificate decisions remain
+interactive; closing the viewer also stops the terminal relay.
+
 Manual `sshh` forwards and bare registry names remain supported. Without a route,
 commands use a registered port, the existing numeric resolver, or a literal
 destination. Unknown registry lookups never allocate.

@@ -335,6 +335,10 @@ function command_not_found_handle () {
 # The environment carries the password to the launcher, then stdin to the viewer.
 function __desktop_password_launch () {
   local password=$1; shift
+  if [[ $1 == rdesktop && -t 0 ]]; then
+    env "DESKTOP_PASSWORD=$password" desktop-stdin "$@"
+    return
+  fi
   launch_and_close env "DESKTOP_PASSWORD=$password" bash -c '
     password=$DESKTOP_PASSWORD
     unset DESKTOP_PASSWORD
