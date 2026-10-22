@@ -52,6 +52,25 @@ args, password, env = json.load(open(os.environ['CAPTURE']))
 assert 'device97.example' in args and args[args.index('-p') + 1] == '-'
 assert password == 'p a $() `literal` "quote"\n' and env is None
 PY
+# References resolve beside PASSWORDFILE, regardless of the working directory.
+printf '%s\n' '97 ./97 secret.passwd' > "$PASSWORDFILE"
+printf '%s\n' 'file p a $() `literal` "quote"' > "$fixture/97 secret.passwd"
+for viewer in rd xtv; do
+  (cd /; "$viewer" abc)
+  python3 - <<'PYTEST'
+import json, os
+args, password, env = json.load(open(os.environ['CAPTURE']))
+assert password == 'file p a $() `literal` "quote"\n' and env is None
+assert './97 secret.passwd' not in args
+PYTEST
+done
+# File contents remain literal, including text starting with ./.
+printf '%s\n' './literal-password' > "$fixture/97 secret.passwd"
+[[ $(__device_password 97) == ./literal-password ]] || fail 'recursive reference'
+printf '%s\n' '97 ./absent.passwd' > "$PASSWORDFILE"
+if rd abc 2>/dev/null; then fail 'missing referenced file accepted'; fi
+printf '%s\n' '97 /literal-password' > "$PASSWORDFILE"
+[[ $(__device_password 97) == /literal-password ]] || fail 'absolute path must stay literal'
 # Empty and single-hyphen passwords are data, including for RDP.
 for secret in '' '-'; do
   printf '97 %s\n' "$secret" > "$PASSWORDFILE"

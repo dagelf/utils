@@ -258,6 +258,11 @@ function __device_password () {
     found=1; password=${line#"$1 "}
   done <<< "$records"
   [[ $found ]] || { echo "No password record for $1" >&2; return 2; }
+  if [[ $password == ./* ]]; then
+    password=$(sudo cat -- "$(dirname -- "$PASSWORDFILE")/$password") || {
+      echo "Password file reference failed for $1" >&2; return 2;
+    }
+  fi
   printf '%s\n' "$password"
 }
 # The environment carries the password to the launcher, then stdin to the viewer.

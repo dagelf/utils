@@ -104,7 +104,13 @@ Set `export PASSWORDFILE="$HOME/.passwords"` in `~/.bashrc`. Keep that file priv
 ```text
 97 example password with spaces
 gateway:desktop another-password
+98 ./98.passwd
 ```
+
+Values starting with `./` reference a plaintext password file relative to
+`PASSWORDFILE`'s directory. It is read with `sudo cat`; trailing newlines are
+stripped. References are read once, never recursively expanded. An unreadable
+reference stops the launch. All other values remain literal passwords.
 
 The key is the resolved alias name, before translating it to a numeric address or
 local tunnel port. Passwords are literal text, never shell code. `sudo grep` reads
