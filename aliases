@@ -142,6 +142,7 @@ function __lan_ssh_option_takes_arg () {
 function ssh () {
   local -a args=("$@") tunnel_opts=()
   local i=0 n=${#args[@]} target user= port status title
+  local device_loaded=${device_loaded-} device_caller=${device_caller-} device_gateway=${device_gateway-} device_endpoint=${device_endpoint-} device_password=${device_password-}
   while ((i < n)); do
     if [[ ${args[i]} == -- ]]; then ((i++)); break; fi
     [[ ${args[i]} == -* ]] || break
@@ -152,7 +153,13 @@ function ssh () {
     [[ $target == *@* ]] && user=${target%@*}@
     target=$(__device_name "${target##*@}") || return
     args[i]="$user$target"
-    if port=$(__tunnel_port "${target##*@}"); then
+    if __device_read ssh "$target"; then :
+    else status=$?; ((status == 1)) || return "$status"; fi
+    if [[ -n $device_endpoint ]]; then
+      port=$(__device_target : "$target") || return
+      args[i]="$user${port%:*}"
+      tunnel_opts=(-p "${port##*:}" -o "HostKeyAlias=$target")
+    elif port=$(__tunnel_port "${target##*@}"); then
       args[i]="${user}127.0.0.1"
       tunnel_opts=(-p "$port" -o "HostKeyAlias=${target##*@}")
     else
@@ -245,25 +252,85 @@ PY
 function launch_and_close () { "$@" <&0 & disown "$!"; idle_exit "${close_delay:-5}"; }
 function scrot () { command scrot "$@" && idle_exit; }
 unalias rd xtv 2>/dev/null
-# Missing capability: look up a password by caller and device, without evaluation.
-# PASSWORDFILE lines are: caller<space>device<space>password (spaces allowed).
-function __device_password () {
+# Missing capability: one sudo-read record owns routing and credentials per launch.
+# caller alias [gateway host:port] password-or-./file; legacy credential rows still work.
+function __device_read () {
+  [[ ${device_loaded-} != "$1 $2" ]] || return 0
+  device_caller=; device_gateway=; device_endpoint=; device_password=; device_loaded=
   [[ -n ${PASSWORDFILE:-} ]] || return 1
-  local records line password found= status key="$1 $2"
-  records=$(sudo grep -F -- "$key " "$PASSWORDFILE"); status=$?
-  ((status == 0)) || { echo 'Password lookup failed (no match, unreadable file or sudo denied)' >&2; return 2; }
+  local records line caller name value gateway endpoint password found=
+  records=$(sudo awk -v device="$2" '$2 == device { print }' "$PASSWORDFILE") || {
+    echo 'Device lookup failed (unreadable file or sudo denied)' >&2; return 2;
+  }
   while IFS= read -r line; do
-    [[ $line == "$key "* ]] || continue
-    [[ ! $found ]] || { echo "Duplicate password record for $key" >&2; return 2; }
-    found=1; password=${line#"$key "}
+    [[ $line != [[:space:]]*'#'* && $line != '#'* ]] || continue
+    [[ $line =~ ^[[:space:]]*([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]](.*)$ ]] || continue
+    caller=${BASH_REMATCH[1]}; name=${BASH_REMATCH[2]}; value=${BASH_REMATCH[3]}
+    [[ $name == "$2" && ( -z $1 || $caller == "$1" ) ]] || continue
+    [[ ! $found || $caller == "$device_caller" ]] || continue
+    [[ ! $found ]] || { echo "Duplicate device record for $caller $name" >&2; return 2; }
+    [[ $caller =~ ^[[:alpha:]_][[:alnum:]_.-]*$ ]] || { echo 'Invalid device caller' >&2; return 2; }
+    found=1; device_caller=$caller; device_password=$value
+    read -r gateway endpoint password <<< "$value"
+    if [[ $endpoint == *:* || ( $gateway == - && -n $endpoint ) ]]; then
+      [[ $gateway == - || $gateway =~ ^([[:alnum:]_.-]+@)?[[:alnum:]_][[:alnum:]_.-]*$ ]] &&
+        [[ $endpoint =~ ^(\[[[:xdigit:]:.]+\]|[[:alnum:]_][[:alnum:]_.-]*):([0-9]{1,5})$ ]] &&
+        ((10#${BASH_REMATCH[2]} >= 1 && 10#${BASH_REMATCH[2]} <= 65535)) || {
+          echo "Invalid route for $caller $name" >&2; return 2;
+        }
+      [[ $value =~ ^[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]](.*)$ ]] || {
+        echo "Missing credential field for $caller $name" >&2; return 2;
+      }
+      device_gateway=$gateway; device_endpoint=$endpoint; device_password=${BASH_REMATCH[1]}
+    fi
   done <<< "$records"
-  [[ $found ]] || { echo "No password record for $key" >&2; return 2; }
-  if [[ $password == ./* ]]; then
-    password=$(sudo cat -- "$(dirname -- "$PASSWORDFILE")/$password") || {
-      echo "Password file reference failed for $key" >&2; return 2;
-    }
+  [[ $found ]] || return 1
+  device_loaded="$device_caller $2"
+}
+function __device_secret () {
+  if [[ $1 == ./* ]]; then
+    sudo cat -- "$(dirname -- "$PASSWORDFILE")/$1" || { echo 'Password file reference failed' >&2; return 2; }
+  else printf '%s\n' "$1"; fi
+}
+function __device_password () {
+  local device_loaded device_caller device_gateway device_endpoint device_password
+  __device_read "$1" "$2" || { echo 'Password lookup failed' >&2; return 2; }
+  __device_secret "$device_password"
+}
+# The registry owns allocation, SSH owns the listener; neither guesses service health.
+function __device_target () {
+  local separator=$1 device=$2 port forward
+  if [[ -z $device_endpoint ]]; then __tunnel_target "$separator" "$device"; return; fi
+  local host=${device_endpoint%:*} remote_port=${device_endpoint##*:}
+  if [[ $device_gateway == - ]]; then printf '%s%s%s\n' "$host" "$separator" "$remote_port"; return; fi
+  port=$(getport "$device_caller:$device") || return
+  forward="127.0.0.1:$port:$device_endpoint"
+  if ! command ssh -O forward -L "$forward" "$device_gateway" 2>/dev/null; then
+    if command ssh -O check "$device_gateway" >/dev/null 2>&1; then
+      echo "Forward failed for $device_caller:$device (master still active)" >&2; return 1
+    fi
+    command ssh -fNT -o ExitOnForwardFailure=yes -o ConnectTimeout=10 -o ServerAliveInterval=10 -o ServerAliveCountMax=2 \
+      -L "$forward" "$device_gateway" || return
   fi
-  printf '%s\n' "$password"
+  printf '127.0.0.1%s%s\n' "$separator" "$port"
+}
+# First matching caller is the default for bare aliases; explicit callers select their row.
+function command_not_found_handle () {
+  local token=$1 device status ip target
+  local device_loaded device_caller device_gateway device_endpoint device_password
+  shift
+  device=$(__device_name "$token") || return
+  if __device_read '' "$device"; then
+    case $device_caller in
+      xtv|rd|ssh) "$device_caller" "$device" "$@" ;;
+      *) target=$(__device_target : "$device") || return; "$device_caller" "$target" "$@" ;;
+    esac
+    return
+  else status=$?; ((status == 1)) || return "$status"; fi
+  if declare -F __lan_target_from_token >/dev/null && ip=$(__lan_target_from_token "$device"); then target=$ip
+  elif declare -F __lan_ip_for_host >/dev/null && ip=$(__lan_ip_for_host "$device") && [[ -n $ip ]]; then target=$device
+  else printf 'bash: %s: command not found\n' "$token" >&2; return 127; fi
+  __lan_ssh_exec "$target" "$@"
 }
 # The environment carries the password to the launcher, then stdin to the viewer.
 function __desktop_password_launch () {
@@ -276,10 +343,13 @@ function __desktop_password_launch () {
 }
 function rd () {
   local target device password=${WIN_PASS:--} override= prompt= status close_delay=5
+  local device_loaded=${device_loaded-} device_caller=${device_caller-} device_gateway=${device_gateway-} device_endpoint=${device_endpoint-} device_password=${device_password-}
   [[ $password != - ]] || prompt=1
   if (($#)); then
     device=$(__device_name "$1") || return
-    target=$(__tunnel_target : "$device") || return; shift; set -- "$target" "$@"
+    if __device_read rd "$device"; then :
+    else status=$?; ((status == 1)) || return "$status"; fi
+    shift; set -- "$device" "$@"
   fi
   local -a options=()
   while (($#)); do
@@ -290,8 +360,13 @@ function rd () {
     else options+=("$1"); shift; fi
   done
   if [[ ! $override && -n $device && -n ${PASSWORDFILE:-} ]]; then
-    password=$(__device_password rd "$device") || return
+    [[ $device_loaded ]] || { echo 'Password lookup failed (no matching device)' >&2; return 2; }
+    password=$(__device_secret "$device_password") || return
     prompt=
+  fi
+  if [[ -n $device ]]; then
+    target=$(__device_target : "$device") || return
+    options[0]=$target
   fi
   local -a viewer=(rdesktop -D -K -z -r clipboard:CLIPBOARD -g "${RES:-1280x960}" -u "${WIN_USER:-$USER}" -p - -r disk:share=/dev/shm/rdp -r sound:local "${options[@]}")
   if [[ $prompt ]]; then
@@ -303,26 +378,33 @@ function rd () {
   __desktop_password_launch "$password" "${viewer[@]}"
 }
 function xtv () {
-  local target device password arg status close_delay=10
+  local target device password arg status override= close_delay=10
+  local device_loaded=${device_loaded-} device_caller=${device_caller-} device_gateway=${device_gateway-} device_endpoint=${device_endpoint-} device_password=${device_password-}
   if (($#)); then
     device=$(__device_name "$1") || return
-    target=$(__tunnel_target :: "$device") || return; shift; set -- "$target" "$@"
+    if __device_read xtv "$device"; then :
+    else status=$?; ((status == 1)) || return "$status"; fi
+  fi
+  for arg in "$@"; do
+    case $arg in -passwd|-autopass|-listen) override=1;; esac
+  done
+  if [[ ! $override && -n $device && -n ${PASSWORDFILE:-} ]]; then
+    [[ $device_loaded ]] || { echo 'Password lookup failed (no matching device)' >&2; return 2; }
+    password=$(__device_secret "$device_password") || return
+  fi
+  if [[ -n $device ]]; then
+    target=$(__device_target :: "$device") || return; shift; set -- "$target" "$@"
   fi
   local -a viewer=(xtightvncviewer -compresslevel 9 -encodings "tight copyrect coRRE" -quality 3 "$@")
-  for arg in "$@"; do
-    case $arg in -passwd|-autopass|-listen) launch_and_close "${viewer[@]}"; return;; esac
-  done
+  if [[ $override ]]; then launch_and_close "${viewer[@]}"; return; fi
   if [[ -n $device && -n ${PASSWORDFILE:-} ]]; then
-    password=$(__device_password xtv "$device") || return
     __desktop_password_launch "$password" "${viewer[@]}" -autopass; return
   fi
   if [[ -t 0 && $# -gt 0 ]]; then
     IFS= read -r -s -p 'VNC password (empty if none): ' password; status=$?; printf '\n' >&2
     ((status == 0)) || return "$status"
     __desktop_password_launch "$password" "${viewer[@]}" -autopass
-  else
-    launch_and_close "${viewer[@]}"
-  fi
+  else launch_and_close "${viewer[@]}"; fi
 }
 alias out='pacmd set-default-sink $(pacmd list-sinks|grep -e "name:" -e "index:"|fzf|cut -d: -f2-)'
 function write () {(sleep 1; echo "$*"|xargs -I{} xdotool type "{}")};

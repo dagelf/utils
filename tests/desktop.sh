@@ -19,7 +19,7 @@ ln -s viewer "$fixture/bin/rdesktop"
 ln -s viewer "$fixture/bin/xtightvncviewer"
 # Load definitions without shell startup side effects.
 source <(sed -n '/^function __device_name () {/,/^alias ips=/p' "$repo/aliases" | head -n -1)
-source <(sed -n '/^function __device_password () {/,/^alias out=/p' "$repo/aliases" | head -n -1)
+source <(sed -n '/^function __device_read () {/,/^alias out=/p' "$repo/aliases" | head -n -1)
 function launch_and_close () { "$@"; }
 function sudo () { command "$@"; }
 # Stand in for the profile's numeric resolver without depending on local config.
@@ -127,7 +127,9 @@ function sudo () { return 1; }
 if xtv abc 2>/dev/null; then fail 'sudo denial ignored'; fi
 function sudo () { return 2; }
 if xtv abc 2>/dev/null; then fail 'lookup error ignored'; fi
-# Explicit authentication bypasses the password file.
+# Explicit authentication bypasses credential loading; routing still reads the record.
+printf '%s\n' 'rd 97 ./missing-secret' 'xtv 97 ./missing-secret' > "$PASSWORDFILE"
+function sudo () { command "$@"; }
 rd abc -p explicit
 python3 - <<'PYTEST'
 import json, os
@@ -139,4 +141,92 @@ xtv abc -passwd /example/file
 function ssh () { printf '%s\n' "$@" > "$CAPTURE"; }
 sshh gateway desktop:host:5900 2>/dev/null
 rg -q -F -- "127.0.0.1:$named:host:5900" "$CAPTURE" || fail 'sshh forward'
+# Allocation is stable even before a listener exists.
+[[ $(getport 97) == "$port" && $(getport 97) == "$port" ]] || fail 'unstable allocation'
+# The SSH fixture owns forwarding state; viewers only record their arguments.
+rm "$fixture/bin/ssh"
+export TUNNEL_LOG="$fixture/tunnels" TUNNEL_STATE="$fixture/forwards"
+cat > "$fixture/bin/ssh" <<'PYSSH'
+#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ['TUNNEL_LOG'], 'a') as log:
+    log.write(json.dumps(args) + '\n')
+if '-O' in args and '-L' not in args:
+    sys.exit(0 if pathlib.Path(os.environ['TUNNEL_STATE']).exists() else 1)
+if '-L' not in args:
+    with open(os.environ['CAPTURE'], 'w') as out:
+        json.dump([args, '', None], out)
+    sys.exit(0)
+forward = args[args.index('-L') + 1]
+state = pathlib.Path(os.environ['TUNNEL_STATE'])
+if '-O' in args:
+    if not state.exists(): sys.exit(1)
+    forwards = state.read_text().splitlines()
+    if forward not in forwards: state.write_text('\n'.join(forwards + [forward]) + '\n')
+else:
+    if os.environ.get('SSH_START_FAIL'): sys.exit(1)
+    state.write_text(forward + '\n')
+PYSSH
+chmod +x "$fixture/bin/ssh"
+# First row is the bare default; services have independent ports and credentials.
+printf '%s\n' 'xtv a97 gateway desktop.example:5900 ./97 secret.passwd' \
+  'rd a97 gateway desktop.example:3389 rdp-secret' \
+  'ssh a97 gateway desktop.example:22 ignored-ssh-password' > "$PASSWORDFILE"
+printf '%s\n' 'vnc-secret' > "$fixture/97 secret.passwd"
+export SUDO_LOG="$fixture/sudo"
+function sudo () { printf '%s\n' "$1" >> "$SUDO_LOG"; command "$@"; }
+command_not_found_handle a97
+vncport=$(getport --lookup xtv:a97)
+python3 - "$vncport" <<'PYTEST'
+import json, os, sys
+args, secret, _ = json.load(open(os.environ['CAPTURE']))
+assert '127.0.0.1::' + sys.argv[1] in args and secret == 'vnc-secret\n'
+calls = [json.loads(line) for line in open(os.environ['TUNNEL_LOG'])]
+assert len(calls) == 3 and 'forward' in calls[0] and 'check' in calls[1] and '-fNT' in calls[2]
+assert '-o' in calls[2] and 'ExitOnForwardFailure=yes' in calls[2]
+assert calls[2][calls[2].index('-L') + 1] == '127.0.0.1:' + sys.argv[1] + ':desktop.example:5900'
+assert open(os.environ['SUDO_LOG']).read().splitlines() == ['awk', 'cat']
+PYTEST
+xtv a97
+[[ $(wc -l < "$TUNNEL_LOG") == 4 ]] || fail 'existing tunnel restarted'
+rd a97
+rdport=$(getport --lookup rd:a97)
+[[ $rdport != "$vncport" ]] || fail 'services share a port'
+# Drop the test's ssh override so the real wrapper exercises its route.
+unset -f ssh
+source <(sed -n '/^function ssh () {/,/^# Keep forwards/p' "$repo/aliases" | head -n -1)
+ssh user@a97 echo ok
+python3 - <<'PYTEST'
+import json, os
+args, _, _ = json.load(open(os.environ['CAPTURE']))
+assert 'user@127.0.0.1' in args and 'HostKeyAlias=a97' in args and args[-2:] == ['echo', 'ok']
+PYTEST
+# A dead master restarts on the next invocation; failed startup never launches a viewer.
+rm "$TUNNEL_STATE"
+xtv a97
+rm "$TUNNEL_STATE" "$CAPTURE"
+export SSH_START_FAIL=1
+if xtv a97; then fail 'failed tunnel accepted'; fi
+[[ ! -e $CAPTURE ]] || fail 'viewer launched after tunnel failure'
+unset SSH_START_FAIL
+# Direct routes never open SSH. Explicit auth still resolves routing.
+printf '%s\n' 'xtv direct - desktop.example:5901 ./missing-secret' > "$PASSWORDFILE"
+xtv direct -passwd /explicit
+python3 - <<'PYTEST'
+import json, os
+args, _, _ = json.load(open(os.environ['CAPTURE']))
+assert 'desktop.example::5901' in args and '/explicit' in args
+PYTEST
+# Duplicate keys, malformed routes and denied reads stop before side effects.
+printf '%s\n' 'xtv bad gateway desktop.example:70000 secret' > "$PASSWORDFILE"
+if xtv bad 2>/dev/null; then fail 'invalid remote port accepted'; fi
+printf '%s\n' 'xtv bad gateway desktop.example:5900 secret' 'xtv bad gateway other.example:5900 secret' > "$PASSWORDFILE"
+if xtv bad 2>/dev/null; then fail 'duplicate route accepted'; fi
+function sudo () { [[ $1 != cat ]] || return 1; command "$@"; }
+printf '%s\n' 'xtv bad gateway desktop.example:5900 ./denied' > "$PASSWORDFILE"
+if xtv bad 2>/dev/null; then fail 'denied referenced file accepted'; fi
+function sudo () { return 1; }
+if xtv a97 -passwd /explicit 2>/dev/null; then fail 'denied route read bypassed by explicit auth'; fi
+if command_not_found_handle a97 2>/dev/null; then fail 'denied dispatch read accepted'; fi
 printf '%s\n' 'desktop integration checks passed'

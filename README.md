@@ -37,18 +37,17 @@ Reload after updating: `source ~/utils/aliases`. The SSH wrapper preserves optio
 ### Port registry
 
 ```bash
-getport myapp               # allocate if new; otherwise check whether it is listening
+getport myapp               # allocate if new; otherwise return the same port
 getport --lookup myapp      # raw registry lookup, without checking or changing anything
 port=$(getport)             # allocate a fresh port; print its generated name to stderr
 ```
 
 Ports start at 10000; released ports are reused before allocating higher numbers. With no name, each call gets a fresh allocation named `<caller-basename>:<port>`, for example `deploy.sh:10001`. The caller is the parent command, or its script filename for common interpreters; interactive shells and `bash -c` use `bash`. The generated name goes to stderr as `getport: deploy.sh:10001`. Stdout contains only the number, so command substitution works.
 
-For an existing name, `getport name` checks local TCP/UDP listeners with `ss`. A live allocation prints the port to stdout and a URL such as `tcp://127.0.0.1:10001` (or `udp://...`) to stderr. These URLs identify the transport; they do not assume the service is HTTP. If no listener remains, it deletes the allocation, makes the port reusable, prints nothing on either stream, and exits 1. Calling that now-absent name again allocates a port. A new allocation also has no listener until your application binds it, so checking it before then releases it too.
-
-`getport --lookup name` is the read-only registry operation: it returns the stored number without probing or reclaiming it, or exits 1 silently if absent. The tunnel helpers use this during setup, before SSH can bind its ports. Other errors exit 2.
-
-The registry lives at `${XDG_STATE_HOME:-$HOME/.local/state}/dagelf-utils/ports.sqlite3`. SQLite serializes concurrent allocations and enforces unique names and ports. New allocations skip ports already bound for TCP or UDP on IPv4 or IPv6. Allocations persist until checked and found closed; this is a registry, not an OS reservation, so unrelated programs can still claim an unused port. Liveness checks identify a listening port, not ownership of its process.
+`getport name` always returns the stored port, even before a listener starts or
+after it closes. Lookup never deletes allocations or prints transport URLs.
+`getport --lookup name` only reads: absent names exit 1 silently, other errors
+exit 2. A conflicting listener causes SSH to fail instead of changing the port.
 
 ### Named forwards
 
@@ -83,63 +82,60 @@ For VNC, `sshh abc desktop:host1:5900`, then `xtv abc:desktop`. `rd` and `xtv` r
 
 No SSH config entries are created and no service detection is needed: use `ssh` for an SSH destination, `rd` for RDP, or `xtv` for VNC. Registered names remain available for the next `sshh` run after a tunnel closes; they do not imply a live connection.
 
-### Device names and desktop passwords
+### Device aliases, routes and passwords
 
-Keep device aliases in `~/.bash_aliases`, using ordinary single-word Bash aliases:
-
-```bash
-alias workstation=97
-# Or point a name at an existing tunnel:
-alias desktop=gateway:desktop
-```
-
-`xtv workstation`, `rd workstation` and `ssh workstation` resolve the alias each time.
-`xtv 97` and `rd 97` use the same device and password record. Numeric addresses use
-any existing `__lan_resolve_target_token` profile function, as SSH already does.
-Alias chains work; cycles fail. Aliases containing commands or options are not executed.
-
-Set `export PASSWORDFILE="$HOME/.passwords"` in `~/.bashrc`. Keep that file private
-(`chmod 600 "$HOME/.passwords"`). Each line is a caller, a device key, and a password, separated by single spaces:
+Set `export PASSWORDFILE="$HOME/.passwordfile"` in your shell profile. The main
+file and referenced files may be root-owned with mode 600. Each routed row is:
 
 ```text
-xtv 97 example password with spaces
-rd 97 ./97-rdp.passwd
-xtv gateway:desktop another-password
-ssh 97 ./97-ssh.passwd
-curl 97 another-password
+# caller alias gateway destination:port password-or-file
+xtv workstation gateway desktop.example:5900 ./vnc.passwd
+rd workstation gateway desktop.example:3389 password with spaces
+ssh workstation gateway desktop.example:22 ./ssh.passwd
+xtv direct - desktop.example:5900 ./vnc.passwd
 ```
 
-Values starting with `./` reference a plaintext password file relative to
-`PASSWORDFILE`'s directory. It is read with `sudo cat`; trailing newlines are
-stripped. References are read once, never recursively expanded. An unreadable
-reference stops the launch. All other values remain literal passwords.
+`xtv workstation`, `rd workstation` and `ssh workstation` select their own row.
+Bare `workstation` uses the first matching caller, here `xtv`. Duplicate
+caller/alias keys fail. Named rows override numeric address expansion. Real shell
+commands/functions/aliases retain normal precedence. Single-word Bash aliases
+(`alias desk=workstation`) still work; cycles fail and command text is not evaluated.
 
-The lookup key is the caller plus the resolved device alias, before translating
-the device to a numeric address or local tunnel port. `xtv` and `rd` select their
-own records automatically. The shared `__device_password caller device` function
-accepts any caller name; SSH and curl authentication adapters are not added here.
-Replace earlier two-column records with this three-column format. Passwords are literal text, never shell code. `sudo grep` reads
-the matching record once per launch. With `PASSWORDFILE` configured, missing or
-duplicate records and lookup failures stop the launch. Explicit `rd -p ...` and
-VNC authentication options override lookup. Without `PASSWORDFILE`, the previous
-prompt/`WIN_PASS` behavior remains. The launcher passes passwords through its
-environment and then viewer stdin (`rdesktop -p -`, VNC `-autopass`); it removes the
-password environment variable before starting the viewer.
+The main file is read once per invocation with `sudo awk`, including bare
+dispatch. `./` references are read once with `sudo cat`, relative to the main
+file's directory, without recursive expansion. Other passwords remain literal,
+including spaces. Trailing newlines from referenced files are stripped.
+Credentials are resolved before desktop tunnels open; denied reads, malformed
+routes, duplicate keys and tunnel failures stop the launch. Explicit `rd -p ...`
+and VNC authentication options bypass credentials, but still read routing.
 
-Bare registry names now work alongside `gateway:desktop`. For a manually created
-VNC tunnel, allocate once and use the same key for the password and connection:
+Legacy `caller alias password-or-file` rows remain valid without routing.
+Routed rows are recognized by the destination colon, or a `-` gateway followed
+by a destination. For a legacy password beginning with route-shaped words, use
+a `./` file reference to avoid ambiguity.
 
-```bash
-port=$(getport workstation)
-ssh -N -L "127.0.0.1:$port:remote-desktop:5900" gateway
-# In another terminal: xtv workstation
-# Read the mapping without allocating or probing: getport --lookup workstation
-```
+Gateway routes allocate `getport caller:alias` and ensure the loopback forward
+with `ssh -O forward`. Enable connection sharing for the gateway: `ControlMaster
+auto`, a `ControlPath`, and `ControlPersist`. With no master, SSH starts one with
+`-fNT`, `ExitOnForwardFailure=yes` and keepalives (10 seconds, two missed probes).
+Repeated calls reuse the forward. After a dead master exits, the next invocation
+recreates it. Existing masters retain their own keepalive settings. There is no
+background retry loop and service failures do not kill shared SSH sessions.
+Changing an active route requires closing its old forward first; a conflicting
+listener fails setup instead of silently directing traffic to the wrong target.
 
-Here `workstation` must have no Bash alias; if it aliases another key, allocate
-and store the password under that resolved key instead. Closing SSH closes the
-forward. `rd` uses the same lookup for RDP forwards (remote port 3389).
-Reload updated definitions with `source ~/utils/aliases`.
+VNC receives `127.0.0.1::port`, RDP receives `127.0.0.1:port`, and SSH receives
+`-p port -o HostKeyAlias=alias`. A `-` gateway connects directly. `xtv` and `rd`
+pass credentials through the existing environment/stdin launcher, never viewer
+arguments. SSH retains normal SSH authentication; its password field is not
+injected. Other callers launched by bare aliases receive `host:port` as their
+first argument and retain their own authentication behavior.
+
+Manual `sshh` forwards and bare registry names remain supported. Without a route,
+commands use a registered port, the existing numeric resolver, or a literal
+destination. Unknown registry lookups never allocate.
+
+Reload with `source ~/utils/aliases`.
 
 ### Stop listeners
 
