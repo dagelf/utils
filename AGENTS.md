@@ -6,16 +6,16 @@ Personal Linux CLI utils. Keep it lean: no build, no deps, no generated files.
 - `aliases` — bash aliases/functions. Sourced **in place** from `~/.bashrc`; also puts `scripts/` on PATH. Nothing machine-specific.
 - `scripts/` — tools too long for a one-liner: one executable each, with a shebang, `chmod +x`. Anything that fits on a line goes in `aliases` instead.
 - In `aliases`, define functions as `function name () {...}`. The `function` keyword stops an existing alias of the same name from breaking parsing.
-- `install.sh` — setup and teardown (`--uninstall`, `--system`). Idempotent. System changes are drop-in files only.
+- `install.sh` — setup and teardown (`--uninstall`, `--user`). System setup is the default; `--user` skips it. Idempotent. System changes use drop-in files or a tagged screenrc block.
 - `snippets` — notes, not executed.
 
 The repo is public. Never commit hostnames, IPs, usernames, key paths or anything machine-specific; that stays in `~/.bash_aliases`. Secrets are referenced by env var only (`OPENROUTER_KEY_FILE`, `NVIDIA_KEY_FILE`, `NVIDIA_BASEURL_FILE`, `HF_KEY_FILE`, `HF_BIN`), set in `~/.bashrc`.
 
 ## Commands
-    ./install.sh                     # setup (user): one tagged line in ~/.bashrc
-    ./install.sh --system            # + sysctl, journald, ssh, screen, earlyoom, src group
-    ./install.sh --uninstall         # teardown (user)
-    ./install.sh --uninstall --system
+    ./install.sh                     # shell, screen, sysctl, journald, ssh, earlyoom, src group
+    ./install.sh --user              # user only: ~/.bashrc hook and ~/.screenrc defaults
+    ./install.sh --uninstall         # teardown (user + system)
+    ./install.sh --uninstall --user   # teardown (user only)
     bash -n aliases install.sh       # syntax check before every commit
 
 ## Reconciling pushes from old copies

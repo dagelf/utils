@@ -1,12 +1,13 @@
 #!/bin/sh
-# Setup:    ./install.sh            hook aliases+scripts into ~/.bashrc and configure ~/.screenrc
-#           ./install.sh --system   also apply system tweaks (needs root/sudo)
-# Teardown: ./install.sh --uninstall [--system]
+# Setup:    ./install.sh            configure shell, screen and system defaults (needs root/sudo)
+#           ./install.sh --user     only configure shell and personal screen defaults
+# Teardown: ./install.sh --uninstall [--user]
 set -e
 D="$(cd "$(dirname -- "$0")" && pwd)"
 TAG='# dagelf-utils'
 S=; [ "$(id -u)" = 0 ] || S=sudo
-case " $* " in *" --system "*) SYS=1 ;; esac
+SYS=1
+case " $* " in *" --user "*) SYS= ;; esac
 case " $* " in *" --uninstall "*) UN=1 ;; esac
 
 screen_defaults () {
