@@ -39,14 +39,18 @@ def main():
 
     # The server owns live state; the native drop-in owns startup state.
     # Resolve module IDs afresh; never persist IDs across server restarts.
-    modules = json.loads(pactl("--format=json", "list", "modules"))
+    modules = pactl("list", "short", "modules").splitlines()
     sinks, listeners = [], []
     for module in modules:
-        args = shlex.split(module.get("argument") or "")
-        if module["name"] == "module-null-sink" and "sink_name=" + SINK in args:
-            sinks.append(str(module["index"]))
-        if module["name"] == "module-loopback" and "sink_input_properties=node.name=vncaudio.listen media.name=VNC-Audio-Listen" in args:
-            listeners.append(str(module["index"]))
+        fields = module.split("\t")
+        if len(fields) < 3 or fields[1] not in {"module-null-sink", "module-loopback"}:
+            continue
+        index, name, arguments = fields[:3]
+        args = shlex.split(arguments)
+        if name == "module-null-sink" and "sink_name=" + SINK in args:
+            sinks.append(index)
+        if name == "module-loopback" and "sink_input_properties=node.name=vncaudio.listen media.name=VNC-Audio-Listen" in args:
+            listeners.append(index)
 
     if action in {"enable", "disable"}:
         if CONFIG.exists() and CONFIG.read_text() != CONTENT:
