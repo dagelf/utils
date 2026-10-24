@@ -43,10 +43,11 @@ if [ -n "$SYS" ]; then
     $S rm -f $F
     $S systemctl disable --now earlyoom 2>/dev/null || true
   else
-    $S mkdir -p /etc/systemd/journald.conf.d /etc/ssh/ssh_config.d
-    echo 'kernel.sysrq=1' | $S tee /etc/sysctl.d/90-dagelf-utils.conf >/dev/null
-    printf '[Journal]\nSystemMaxUse=50M\n' | $S tee /etc/systemd/journald.conf.d/dagelf-utils.conf >/dev/null
-    printf 'Host *\n  ControlMaster auto\n  ControlPath ~/.ssh/socket-%%r@%%h-%%p\n  ControlPersist 600\n' | $S tee /etc/ssh/ssh_config.d/dagelf-utils.conf >/dev/null
+    # Explicit modes also repair files/directories created under a restrictive umask.
+    $S install -d -m 755 /etc/sysctl.d /etc/systemd/journald.conf.d /etc/ssh/ssh_config.d
+    echo 'kernel.sysrq=1' | $S install -m 644 /dev/stdin /etc/sysctl.d/90-dagelf-utils.conf
+    printf '[Journal]\nSystemMaxUse=50M\n' | $S install -m 644 /dev/stdin /etc/systemd/journald.conf.d/dagelf-utils.conf
+    printf 'Host *\n  ControlMaster auto\n  ControlPath ~/.ssh/socket-%%r@%%h-%%p\n  ControlPersist 600\n' | $S install -m 644 /dev/stdin /etc/ssh/ssh_config.d/dagelf-utils.conf
     screen_defaults | $S tee -a /etc/screenrc >/dev/null
     $S sysctl -q -p /etc/sysctl.d/90-dagelf-utils.conf
     $S systemctl restart systemd-journald 2>/dev/null || true
