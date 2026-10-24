@@ -31,6 +31,53 @@ def pactl(*args):
     return subprocess.check_output(["pactl", *args], text=True).strip()
 
 
+def graph():
+    return json.loads(subprocess.check_output(["pw-dump"], text=True))
+
+
+def listening_links(objects):
+    return [obj for obj in objects if obj["type"] == "PipeWire:Interface:Link"
+            and obj["info"]["props"].get("vncaudio.listen") in (True, "true")]
+
+
+def disconnect(links):
+    for link in links:
+        subprocess.run(["pw-link", "-d", str(link["id"])], check=True)
+
+
+def listen(target):
+    # Link existing ports directly. A loaded loopback module does not prove
+    # that the session manager connected either end of it.
+    objects = graph()
+    nodes = {obj["info"]["props"].get("node.name"): obj["id"]
+             for obj in objects if obj["type"] == "PipeWire:Interface:Node"}
+    def ports(name, direction):
+        return {obj["info"]["props"].get("audio.channel"): obj["id"]
+                for obj in objects if obj["type"] == "PipeWire:Interface:Port"
+                and str(obj["info"]["props"].get("node.id")) == str(nodes.get(name))
+                and obj["info"]["direction"] == direction}
+    source, destination = ports(SINK, "output"), ports(target, "input")
+    if not all(channel in source and channel in destination for channel in ("FL", "FR")):
+        raise RuntimeError(f"Stereo ports unavailable on {SINK} or {target}")
+    wanted = {(source[channel], destination[channel]) for channel in ("FL", "FR")}
+    links = listening_links(objects)
+    def pair(link):
+        return (link["info"]["output-port-id"], link["info"]["input-port-id"])
+    disconnect([link for link in links if pair(link) not in wanted])
+    existing = {pair(link) for link in links}
+    try:
+        for output, input_ in wanted - existing:
+            subprocess.run(["pw-link", "-w", "-p", '{"vncaudio.listen":true}',
+                            str(output), str(input_)], check=True)
+        connected = listening_links(graph())
+        if {pair(link) for link in connected} != wanted or any(
+                link["info"]["state"] not in {"active", "paused"} for link in connected):
+            raise RuntimeError("Listening links did not connect")
+    except (OSError, RuntimeError, subprocess.CalledProcessError):
+        disconnect(listening_links(graph()))
+        raise
+
+
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in {"enable", "disable", "listen", "mute", "status"}:
         print(USAGE, end="")
@@ -75,6 +122,7 @@ def main():
         # Only remove the listening branch when muting, never the recording sink.
         for module in listeners:
             pactl("unload-module", module)
+        disconnect(listening_links(graph()))
         if action == "disable":
             for module in sinks:
                 pactl("unload-module", module)
@@ -83,16 +131,17 @@ def main():
     elif action == "listen":
         if not sinks:
             raise RuntimeError("Run vncaudio enable first")
-        if not listeners:
-            target = pactl("get-default-sink")
-            if target == SINK:
-                raise RuntimeError("Choose your speakers/headphones as the default output first")
-            pactl("load-module", "module-loopback", "source=vncaudio.monitor",
-                  "sink=" + target, "source_dont_move=true", "sink_dont_move=true",
-                  'sink_input_properties="node.name=vncaudio.listen media.name=VNC-Audio-Listen"')
-        print("Listening on; recording unchanged.")
+        target = pactl("get-default-sink")
+        if target == SINK:
+            raise RuntimeError("Choose your speakers/headphones as the default output first")
+        for module in listeners:
+            pactl("unload-module", module)
+        listen(target)
+        print(f"Listening through {target}; recording unchanged.")
     else:
-        print(f"Sink: {'enabled' if sinks else 'disabled'}; listening: {'on' if listeners else 'off'}; "
+        links = listening_links(graph())
+        listening = len(links) == 2 and all(link["info"]["state"] in {"active", "paused"} for link in links)
+        print(f"Sink: {'enabled' if sinks else 'disabled'}; listening: {'on' if listening else 'off'}; "
               f"startup: {'enabled' if CONFIG.exists() else 'disabled'}")
     return 0
 
