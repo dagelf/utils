@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Silent PipeWire recording sink with independently switchable listening."""
+
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+SINK = "vncaudio"
+ARGS = 'sink_name=vncaudio channels=2 rate=48000 sink_properties="device.description=VNC-Audio priority.session=0"'
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "pipewire/pipewire-pulse.conf.d/90-vncaudio.conf"
+CONTENT = ('# Managed by vncaudio. Listening is off after an audio-server restart.\n'
+           'pulse.cmd = [\n    { cmd = "load-module" args = '
+           + json.dumps("module-null-sink " + ARGS) + ' }\n]\n')
+USAGE = """Usage: vncaudio enable|disable|listen|mute|status
+  enable   Create VNC-Audio now and on future audio-server starts.
+  disable  Remove VNC-Audio, including its startup configuration.
+  listen   Hear VNC-Audio through the current default output.
+  mute     Stop listening; recording continues unchanged.
+  status   Show current and startup state.
+
+In pavucontrol, send browser playback to VNC-Audio and select
+Monitor of VNC-Audio for your recorder. Keep browser playback unmuted.
+Use mute, not disable, during a recording: disable removes its source.
+"""
+
+
+def pactl(*args):
+    return subprocess.check_output(["pactl", *args], text=True).strip()
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in {"enable", "disable", "listen", "mute", "status"}:
+        print(USAGE, end="")
+        return 0 if sys.argv[1:] in ([], ["--help"], ["-h"]) else 2
+    action = sys.argv[1]
+
+    # The server owns live state; the native drop-in owns startup state.
+    # Resolve module IDs afresh; never persist IDs across server restarts.
+    modules = json.loads(pactl("--format=json", "list", "modules"))
+    sinks, listeners = [], []
+    for module in modules:
+        args = shlex.split(module.get("argument") or "")
+        if module["name"] == "module-null-sink" and "sink_name=" + SINK in args:
+            sinks.append(str(module["index"]))
+        if module["name"] == "module-loopback" and "sink_input_properties=node.name=vncaudio.listen media.name=VNC-Audio-Listen" in args:
+            listeners.append(str(module["index"]))
+
+    if action in {"enable", "disable"}:
+        if CONFIG.exists() and CONFIG.read_text() != CONTENT:
+            raise RuntimeError(f"Refusing to replace an edited configuration: {CONFIG}")
+
+    if action == "enable":
+        if not sinks:
+            # An unrelated node with our name must not acquire a duplicate.
+            nodes = json.loads(pactl("--format=json", "list", "sinks"))
+            if any(node["name"] == SINK for node in nodes):
+                raise RuntimeError("An unrelated sink already uses the name vncaudio")
+        created = pactl("load-module", "module-null-sink", ARGS) if not sinks else None
+        try:
+            CONFIG.parent.mkdir(parents=True, exist_ok=True)
+            CONFIG.write_text(CONTENT)
+        except OSError:
+            if created:
+                pactl("unload-module", created)
+            raise
+        print("VNC-Audio enabled. Record from vncaudio.monitor.")
+    elif action in {"disable", "mute"}:
+        # Only remove the listening branch when muting, never the recording sink.
+        for module in listeners:
+            pactl("unload-module", module)
+        if action == "disable":
+            for module in sinks:
+                pactl("unload-module", module)
+            CONFIG.unlink(missing_ok=True)
+        print("VNC-Audio disabled." if action == "disable" else "Listening off; recording unchanged.")
+    elif action == "listen":
+        if not sinks:
+            raise RuntimeError("Run vncaudio enable first")
+        if not listeners:
+            target = pactl("get-default-sink")
+            if target == SINK:
+                raise RuntimeError("Choose your speakers/headphones as the default output first")
+            pactl("load-module", "module-loopback", "source=vncaudio.monitor",
+                  "sink=" + target, "source_dont_move=true", "sink_dont_move=true",
+                  'sink_input_properties="node.name=vncaudio.listen media.name=VNC-Audio-Listen"')
+        print("Listening on; recording unchanged.")
+    else:
+        print(f"Sink: {'enabled' if sinks else 'disabled'}; listening: {'on' if listeners else 'off'}; "
+              f"startup: {'enabled' if CONFIG.exists() else 'disabled'}")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+        print(f"vncaudio: {error}", file=sys.stderr)
+        sys.exit(1)
