@@ -7,6 +7,7 @@ import errno
 import itertools
 import os
 from pathlib import Path
+import re
 import socket
 import sqlite3
 import sys
@@ -47,46 +48,69 @@ def available(port):
 
 
 def main():
-    lookup = len(sys.argv) > 1 and sys.argv[1] == "--lookup"
-    args = sys.argv[2:] if lookup else sys.argv[1:]
-    if len(args) > 1 or (lookup and not args) or (args and not args[0]):
-        print("Usage: getport [name] | getport --lookup name", file=sys.stderr)
+    mode = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1].startswith("--") else None
+    args = sys.argv[2:] if mode else sys.argv[1:]
+    if (mode not in (None, "--lookup", "--list", "--clean") or len(args) > 1
+            or (mode == "--lookup" and not args) or (args and not args[0])
+            or (mode in ("--list", "--clean") and args)):
+        print("Usage: getport [name] | getport --lookup name | getport --list | getport --clean", file=sys.stderr)
         return 2
     name = args[0] if args else None
-    caller = caller_name() if name is None else None
+    caller = caller_name() if mode is None and name is None else None
     state = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "dagelf-utils"
-    if lookup:
-        database = state / "ports.sqlite3"
+    database = state / "ports.sqlite3"
+    if mode in ("--lookup", "--list"):
         if not database.exists():
-            return 1
+            return 1 if mode == "--lookup" else 0
         with contextlib.closing(sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)) as db:
+            if mode == "--list":
+                for port, registered_name in db.execute("SELECT port, name FROM ports ORDER BY port"):
+                    print(port, registered_name, sep="\t")
+                return 0
             row = db.execute("SELECT port FROM ports WHERE name = ?", (name,)).fetchone()
         if not row:
             return 1
         print(row[0])
         return 0
+    if mode == "--clean" and not database.exists():
+        return 0
     state.mkdir(parents=True, exist_ok=True)
-    with contextlib.closing(sqlite3.connect(state / "ports.sqlite3", timeout=30)) as db:
+    with contextlib.closing(sqlite3.connect(database, timeout=30)) as db:
         with db:
             db.execute("BEGIN IMMEDIATE")
             db.execute("CREATE TABLE IF NOT EXISTS ports (port INTEGER PRIMARY KEY, name TEXT UNIQUE)")
             db.execute("CREATE TABLE IF NOT EXISTS free_ports (port INTEGER PRIMARY KEY)")
-            row = db.execute("SELECT port FROM ports WHERE name = ?", (name,)).fetchone()
-            if row:
-                port = row[0]
+            # Missing capability: explicitly release unused allocations atomically.
+            # The registry owns assignments; a failed probe rolls back cleanup.
+            if mode == "--clean":
+                released = [(port, registered_name) for port, registered_name in
+                            db.execute("SELECT port, name FROM ports ORDER BY port") if available(port)]
+                db.executemany("INSERT INTO free_ports (port) VALUES (?)", [(port,) for port, _ in released])
+                db.executemany("DELETE FROM ports WHERE port = ?", [(port,) for port, _ in released])
             else:
-                start = db.execute("SELECT COALESCE(MAX(port), 9999) + 1 FROM (SELECT MAX(port) AS port FROM ports UNION ALL SELECT MAX(port) FROM free_ports)").fetchone()[0]
-                recycled = (row[0] for row in db.execute("SELECT port FROM free_ports ORDER BY port"))
-                for port in itertools.chain(recycled, range(start, 65536)):
-                    allocated_name = name if name is not None else f"{caller}:{port}"
-                    if not db.execute("SELECT 1 FROM ports WHERE name = ?", (allocated_name,)).fetchone() and available(port):
-                        break
+                row = db.execute("SELECT port FROM ports WHERE name = ?", (name,)).fetchone()
+                if row:
+                    port = row[0]
                 else:
-                    raise RuntimeError("no available ports remain")
-                db.execute("INSERT INTO ports (port, name) VALUES (?, ?)", (port, allocated_name))
-                db.execute("DELETE FROM free_ports WHERE port = ?", (port,))
+                    start = db.execute("SELECT COALESCE(MAX(port), 9999) + 1 FROM (SELECT MAX(port) AS port FROM ports UNION ALL SELECT MAX(port) FROM free_ports)").fetchone()[0]
+                    recycled = (row[0] for row in db.execute("SELECT port FROM free_ports ORDER BY port"))
+                    for port in itertools.chain(recycled, range(start, 65536)):
+                        allocated_name = name if name is not None else f"{caller}:{port}"
+                        if not db.execute("SELECT 1 FROM ports WHERE name = ?", (allocated_name,)).fetchone() and available(port):
+                            break
+                    else:
+                        raise RuntimeError("no available ports remain")
+                    db.execute("INSERT INTO ports (port, name) VALUES (?, ?)", (port, allocated_name))
+                    db.execute("DELETE FROM free_ports WHERE port = ?", (port,))
+        if mode == "--clean":
+            for port, registered_name in released:
+                print(port, registered_name, sep="\t")
+            return 0
         if caller is not None:
             print(f"getport: {allocated_name}", file=sys.stderr)
+        # Named browser origins need a DNS label, including for generated names.
+        host = re.sub(r"[^a-z0-9-]", "-", (name or allocated_name).lower()).strip("-")[:63].rstrip("-") or "app"
+        print(f"http://{host}.localhost:{port}", file=sys.stderr)
         print(port)
     return 0
 

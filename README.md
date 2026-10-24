@@ -40,14 +40,27 @@ Reload after updating: `source ~/utils/aliases`. The SSH wrapper preserves optio
 getport myapp               # allocate if new; otherwise return the same port
 getport --lookup myapp      # raw registry lookup, without checking or changing anything
 port=$(getport)             # allocate a fresh port; print its generated name to stderr
+getport --list              # list registered ports and names, ordered by port
+getport --clean             # release unused ports; print the removed port/name rows
 ```
 
 Ports start at 10000; released ports are reused before allocating higher numbers. With no name, each call gets a fresh allocation named `<caller-basename>:<port>`, for example `deploy.sh:10001`. The caller is the parent command, or its script filename for common interpreters; interactive shells and `bash -c` use `bash`. The generated name goes to stderr as `getport: deploy.sh:10001`. Stdout contains only the number, so command substitution works.
 
+Normal calls also print `http://myapp.localhost:10000` to stderr; stdout stays
+numeric. Names are lowercased and converted to DNS labels (up to 63 characters).
+The registered port keeps origins distinct even when names normalize alike.
+Use the printed URL in the browser and bind the app to loopback on that port.
+
 `getport name` always returns the stored port, even before a listener starts or
-after it closes. Lookup never deletes allocations or prints transport URLs.
+after it closes, unless explicitly released with `--clean`.
 `getport --lookup name` only reads: absent names exit 1 silently, other errors
 exit 2. A conflicting listener causes SSH to fail instead of changing the port.
+Lookup does not print a URL. `--list` also only reads; both list and cleanup
+print tab-separated port/name rows. `--clean` checks TCP and UDP on IPv4 and
+IPv6, keeps occupied ports, and releases unused assignments in one transaction.
+Stopped apps lose their saved assignments; released ports can be reused.
+Port availability is a snapshot, not a reservation against another process
+starting immediately afterwards. Cleanup does not clear browser service workers.
 
 ### Named forwards
 
