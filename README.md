@@ -2,7 +2,7 @@
 
 Linux CLI helpers: bash aliases plus small scripts. Read anything before you run it.
 
-    git clone --depth 1 https://github.com/dagelf/utils && utils/install.sh --system   # omit --system to keep your screen, ssh defaults unchanged
+    git clone --depth 1 https://github.com/dagelf/utils && utils/install.sh --system   # omit --system to apply only shell and user screen defaults
     utils/install.sh --uninstall                                                       # teardown
 
 The repo is sourced where it sits, so `git pull` (`gm`) updates it live. To review first: `gf` fetches and shows the incoming diff, then `gg` merges it (fast-forward only, signed commits only). Put machine-specific vars (`SERVERS`, `RES`, `WIN_USER`, `WIN_PASS`) in `~/.bashrc` above the hook line.

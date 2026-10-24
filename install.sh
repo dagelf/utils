@@ -1,5 +1,5 @@
 #!/bin/sh
-# Setup:    ./install.sh            hook aliases+scripts into ~/.bashrc (in place, so `git pull` is the update)
+# Setup:    ./install.sh            hook aliases+scripts into ~/.bashrc and configure ~/.screenrc
 #           ./install.sh --system   also apply system tweaks (needs root/sudo)
 # Teardown: ./install.sh --uninstall [--system]
 set -e
@@ -9,12 +9,30 @@ S=; [ "$(id -u)" = 0 ] || S=sudo
 case " $* " in *" --system "*) SYS=1 ;; esac
 case " $* " in *" --uninstall "*) UN=1 ;; esac
 
+screen_defaults () {
+  cat <<'EOF'
+# >>> dagelf-utils
+termcapinfo xterm* ti@:te@
+defscrollback 10000
+startup_message off
+hardstatus alwayslastline
+hardstatus string '%{gk}[%{wk}%?%-Lw%?%{=b kR}(%{W}%n*%f %t%?(%u)%?%{=b kR})%{= w}%?%+Lw%?%? %{g}][%{d}%l%{g}][ %{= w}%Y/%m/%d %0C:%s%a%{g} ]%{W}'
+# <<< dagelf-utils
+EOF
+}
+
 # --- user: one line in ~/.bashrc --------------------------------------------
 touch ~/.bashrc
 sed -i "/$TAG\$/d" ~/.bashrc
 [ -n "$UN" ] || echo "[ -r '$D/aliases' ] && . '$D/aliases' $TAG" >> ~/.bashrc
 # legacy (pre-2026-10 installs copied a #defaults..#end-defaults block into ~/.bash_aliases)
 [ -f ~/.bash_aliases ] && sed -i -e '/^#defaults/,/^#end-defaults/d' -e '/^#end-defaults/d' ~/.bash_aliases
+
+# Screen defaults belong to the user too; preserve settings outside our block.
+if [ -f ~/.screenrc ]; then
+  sed -i '/^# >>> dagelf-utils/,/^# <<< dagelf-utils/d' ~/.screenrc
+fi
+[ -n "$UN" ] || screen_defaults >> ~/.screenrc
 
 # --- system: drop-in files only, so teardown is just rm ---------------------
 if [ -n "$SYS" ]; then
@@ -28,15 +46,7 @@ if [ -n "$SYS" ]; then
     echo 'kernel.sysrq=1' | $S tee /etc/sysctl.d/90-dagelf-utils.conf >/dev/null
     printf '[Journal]\nSystemMaxUse=50M\n' | $S tee /etc/systemd/journald.conf.d/dagelf-utils.conf >/dev/null
     printf 'Host *\n  ControlMaster auto\n  ControlPath ~/.ssh/socket-%%r@%%h-%%p\n  ControlPersist 600\n' | $S tee /etc/ssh/ssh_config.d/dagelf-utils.conf >/dev/null
-    $S tee -a /etc/screenrc >/dev/null <<'EOF'
-# >>> dagelf-utils
-termcapinfo xterm* ti@:te@
-defscrollback 10000
-startup_message off
-hardstatus alwayslastline
-hardstatus string '%{gk}[%{wk}%?%-Lw%?%{=b kR}(%{W}%n*%f %t%?(%u)%?%{=b kR})%{= w}%?%+Lw%?%? %{g}][%{d}%l%{g}][ %{= w}%Y/%m/%d %0C:%s%a%{g} ]%{W}'
-# <<< dagelf-utils
-EOF
+    screen_defaults | $S tee -a /etc/screenrc >/dev/null
     $S sysctl -q -p /etc/sysctl.d/90-dagelf-utils.conf
     $S systemctl restart systemd-journald 2>/dev/null || true
     command -v earlyoom >/dev/null || { command -v pacman >/dev/null && $S pacman -S --noconfirm earlyoom || $S apt-get install -y earlyoom; }
