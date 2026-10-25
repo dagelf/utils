@@ -60,7 +60,7 @@ alias gg='git merge --ff-only --verify-signatures'
 alias push='git push'
 
 # files & system
-function ls () { [[ "$1" == -* ]] && command ls "$@" || { command ls --color -lhtr "$@" | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
+function ls () { [[ "$1" == -* ]] && command ls -A "$@" || { command ls --color -Alhtr "$@" | awk '{if ($6$7 != prev) print "-----------"; prev=$6$7; print}'; }; };
 alias ll='ls -ltr'
 alias la='command ls -la'
 alias L='command ls -lSr'
