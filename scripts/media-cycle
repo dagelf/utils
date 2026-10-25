@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+"""Super+P: pause everything, play each MPRIS source in turn, then silence."""
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+
+
+def command(*args):
+    try:
+        return subprocess.run(args, capture_output=True, text=True, timeout=3)
+    except (OSError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(args, 1, '', '')
+
+
+def owner_pid(player):
+    result = command('busctl', '--user', 'call', 'org.freedesktop.DBus',
+                     '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                     'GetConnectionUnixProcessID', 's', 'org.mpris.MediaPlayer2.' + player)
+    try:
+        return int(result.stdout.split()[1])
+    except (ValueError, IndexError):
+        return None
+
+
+def parent_pid(pid):
+    try:
+        for line in Path(f'/proc/{pid}/status').read_text().splitlines():
+            if line.startswith('PPid:'):
+                return int(line.split()[1])
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def players():
+    names = list(dict.fromkeys(command('playerctl', '--list-all').stdout.splitlines()))
+    juke_parents = {parent_pid(owner_pid(p)) for p in names if p == 'juke' or p.startswith('juke.')}
+    juke_parents.discard(None)
+    available = []
+    for name in names:
+        # Jukebox owns this mpv child; using it directly bypasses the room state.
+        if name.startswith('mpv.') and juke_parents and parent_pid(owner_pid(name)) in juke_parents:
+            continue
+        can_play = command('busctl', '--user', 'get-property', 'org.mpris.MediaPlayer2.' + name,
+                           '/org/mpris/MediaPlayer2', 'org.mpris.MediaPlayer2.Player', 'CanPlay')
+        if can_play.returncode == 0 and can_play.stdout.strip() == 'b true':
+            available.append(name)
+    return sorted(available, key=lambda p: (not (p == 'juke' or p.startswith('juke.')), p))
+
+
+def status(player):
+    return command('playerctl', '--player=' + player, 'status').stdout.strip()
+
+
+def next_source(available, state, playing):
+    if not state or any(p != state.get('current') for p in playing):
+        return None
+    current = state.get('current')
+    if current is None:
+        return available[0] if available else None
+    if current in available:
+        index = available.index(current) + 1
+        return available[index] if index < len(available) else None
+    # A vanished player occupies its old place until the next press advances.
+    previous = state.get('players', [])
+    tail = previous[previous.index(current) + 1:] if current in previous else available
+    return next((p for p in tail if p in available), None)
+
+
+def wait_status(player, expected):
+    for _ in range(15):
+        if status(player) == expected:
+            return True
+        time.sleep(.1)
+    return False
+
+
+def main():
+    runtime = Path(os.environ.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}'))
+    state_path = runtime / 'media-cycle.json'
+    with (runtime / 'media-cycle.lock').open('a') as lock:
+        # Ignore autorepeat/concurrent invocations while a press is being handled.
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        try:
+            state = json.loads(state_path.read_text())
+            if not isinstance(state, dict):
+                state = {}
+        except (OSError, ValueError):
+            state = {}
+        available = players()
+        playing = [p for p in available if status(p) == 'Playing']
+        target = next_source(available, state, playing)
+        command('playerctl', '--all-players', 'pause')
+        # Never start a new source while another one is still playing.
+        for _ in range(15):
+            all_status = command('playerctl', '--all-players', 'status')
+            if all_status.returncode == 0 and 'Playing' not in all_status.stdout.splitlines():
+                break
+            if not available:
+                break
+            time.sleep(.1)
+        else:
+            target = None
+        if target:
+            command('amixer', 'sset', 'Master', 'unmute')
+            result = command('playerctl', '--player=' + target, 'play')
+            if result.returncode or not wait_status(target, 'Playing'):
+                command('playerctl', '--all-players', 'pause')
+                # Retain this slot so the next press advances past the failed source.
+                state_path.write_text(json.dumps({'current': target, 'players': available}))
+                return
+        state_path.write_text(json.dumps({'current': target, 'players': available}))
+
+
+if __name__ == '__main__':
+    main()

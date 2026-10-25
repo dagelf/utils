@@ -31,6 +31,27 @@ Some highlights:
 
 See `AGENTS.md` for the layout and how to merge older copies.
 
+## IceWM
+
+`icewm/` holds the personal keys, preferences, startup, theme selection and themes.
+Session files, command history and backups are excluded. To apply from this repo:
+
+```sh
+mkdir -p ~/.icewm ~/.local/bin
+cp -a icewm/. ~/.icewm/
+install -m 755 scripts/media-cycle ~/.local/bin/media-cycle
+killall -HUP icewm
+```
+
+This replaces the matching IceWM files; save any local edits first. The shell
+installer does not apply these desktop settings automatically. `startup` sets
+keyboard repeat at the next session start.
+
+Super+P cycles MPRIS sources with `media-cycle`; Super+Q pauses all and mutes.
+The media keys need `playerctl`, `busctl` and `amixer`. Other shortcuts call
+existing desktop programs and personal helpers (`~/ff`, `~/w`, `~/z`,
+`~/alan/k`, `~/alan/clip`); those helpers are not included here.
+
 ## Ports and SSH tunnels
 
 Reload after updating: `source ~/utils/aliases`. The SSH wrapper preserves optional numeric-host resolution and terminal-title hooks from your profile.
